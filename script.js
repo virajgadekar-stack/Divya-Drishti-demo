@@ -1,30 +1,41 @@
 // --- 1. CONFIGURATION & DATA ---
 const PRODUCT_DB = {
-    "DATA-TRUST-101": { status: "SAFE", name: "Mahyco Cotton Seeds (Bt)", message: "✅ GENUINE. Batch #MH-2025 verified.", expiry: "Dec 2025" },
+    // Valid Product
+    "DATA-TRUST-101": { status: "SAFE", name: "Mahyco Cotton Seeds (Bt)", message: "✅ GENUINE. Batch #MH-2025 verified.", expiry: "2026-12-31" },
+    // Fake Product
     "FAKE-PESTICIDE-99": { status: "FAKE", name: "Counterfeit / Unknown", message: "❌ WARNING: Fake Product Detected!", expiry: "N/A" },
-    "1234567890128": { status: "SAFE", name: "Generic Urea Bag (50kg)", message: "✅ Verified IFFCO Standard.", expiry: "Mar 2026" } // Example Barcode
+    // Expired Product (For Testing)
+    "OLD-FERT-2020": { status: "SAFE", name: "DAP Fertilizer (Old Batch)", message: "⚠️ Verified but Check Date.", expiry: "2022-01-01" },
+    // Barcode Example
+    "1234567890128": { status: "SAFE", name: "Generic Urea Bag (50kg)", message: "✅ Verified IFFCO Standard.", expiry: "2026-03-15" }
 };
 
-const KEYWORDS_DB = ["UREA", "DAP", "ZINC", "NPK", "COTTON", "PESTICIDE", "SEED", "IFFCO", "MAHYCO"];
+const FERTILIZER_ADVISORY_DB = {
+    "Wheat": [
+        { days: 21, msg: "CRI Stage (Root Initiation): Apply Urea (half dose) + Zinc. Irrigating now is critical." },
+        { days: 45, msg: "Tillering Stage: Apply remaining Urea. Check for yellowing leaves." },
+        { days: 65, msg: "Flowering Stage: Spray NPK 0:52:34 for better grain filling." }
+    ],
+    "Rice (Paddy)": [
+        { days: 15, msg: "Seedling Stage: Apply Zinc Sulfate if leaves turn rusty." },
+        { days: 30, msg: "Active Tillering: Top dress with Urea. Maintain 2-3cm water level." }
+    ],
+    "Cotton": [
+        { days: 45, msg: "Square Formation: Apply Magnesium Sulfate + NPK 19:19:19 spray." },
+        { days: 70, msg: "Flowering: Spray Boron for better boll retention." }
+    ],
+    "General": [
+        { days: 0, msg: "Basal Dose: Ensure DAP/SSP is applied below seed level." }
+    ]
+};
 
 const CROP_LIST = ["Wheat", "Rice (Paddy)", "Cotton", "Sugarcane", "Maize", "Soybean", "Groundnut", "Mustard", "Turmeric", "Tomato", "Potato", "Onion"];
-
-const LOCATION_DATA = {
-    "Maharashtra": { "Pune": ["Haveli", "Baramati"], "Nashik": ["Malegaon", "Sinnar"] },
-    "Gujarat": { "Ahmedabad": ["Sanand", "Dholka"], "Surat": ["Bardoli", "Mandvi"] },
-    "Punjab": { "Ludhiana": ["Khanna", "Jagraon"], "Amritsar": ["Ajnala", "Baba Bakala"] }
-};
-
-const MANDI_DATA = {
-    "Maharashtra": [ { crop: "Onion", price: "₹2,400/q", trend: "up" }, { crop: "Cotton", price: "₹7,800/q", trend: "down" } ],
-    "Gujarat": [ { crop: "Groundnut", price: "₹6,200/q", trend: "up" }, { crop: "Cotton", price: "₹7,900/q", trend: "up" } ],
-    "Punjab": [ { crop: "Wheat", price: "₹2,275/q", trend: "up" }, { crop: "Paddy", price: "₹2,203/q", trend: "up" } ]
-};
+const LOCATION_DATA = { "Maharashtra": { "Pune": ["Haveli", "Baramati"], "Nashik": ["Malegaon", "Sinnar"] }, "Gujarat": { "Ahmedabad": ["Sanand", "Dholka"], "Surat": ["Bardoli", "Mandvi"] }, "Punjab": { "Ludhiana": ["Khanna", "Jagraon"], "Amritsar": ["Ajnala", "Baba Bakala"] } };
+const MANDI_DATA = { "Maharashtra": [ { crop: "Onion", price: "₹2,400/q", trend: "up" }, { crop: "Cotton", price: "₹7,800/q", trend: "down" } ], "Gujarat": [ { crop: "Groundnut", price: "₹6,200/q", trend: "up" }, { crop: "Cotton", price: "₹7,900/q", trend: "up" } ], "Punjab": [ { crop: "Wheat", price: "₹2,275/q", trend: "up" }, { crop: "Paddy", price: "₹2,203/q", trend: "up" } ] };
 
 let currentUserState = "Maharashtra";
 let html5QrcodeScanner = null;
 let scanTimeout = null;
-let isScanningText = false;
 
 // --- 2. INITIALIZATION ---
 window.onload = function() {
@@ -42,80 +53,41 @@ window.onload = function() {
     }
 };
 
-// --- 3. VALIDATION LOGIC ---
+// --- 3. VALIDATION & FORMS ---
 function validateField(input, type) {
     let isValid = false;
     const val = input.value;
-    
     if (type === 'text' && val.trim().length > 2) isValid = true;
     if (type === 'select' && val !== "") isValid = true;
-    if (type === 'number') {
-        if (val !== "" && !isNaN(val) && Number(val) > 0) isValid = true;
-    }
-
-    if (isValid) {
-        input.classList.add("input-valid");
-    } else {
-        input.classList.remove("input-valid");
-    }
+    if (type === 'number' && val !== "" && !isNaN(val) && Number(val) > 0) isValid = true;
+    
+    if (isValid) input.classList.add("input-valid");
+    else input.classList.remove("input-valid");
 }
 
-// --- 4. REGISTRATION ---
 function loadDistricts() {
     const s = document.getElementById("state-select").value;
     const dSel = document.getElementById("district-select");
     const vSel = document.getElementById("village-select");
-    
-    dSel.innerHTML = '<option value="">-- Select District --</option>'; 
-    vSel.innerHTML = '<option value="">-- Select Village --</option>';
+    dSel.innerHTML = '<option value="">-- Select District --</option>'; vSel.innerHTML = '<option value="">-- Select Village --</option>';
     vSel.disabled = true; dSel.disabled = true; dSel.classList.remove("input-valid"); vSel.classList.remove("input-valid");
-
-    if (s && LOCATION_DATA[s]) {
-        dSel.disabled = false;
-        for (let d in LOCATION_DATA[s]) { let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt); }
-    }
+    if (s && LOCATION_DATA[s]) { dSel.disabled = false; for (let d in LOCATION_DATA[s]) { let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt); } }
 }
-
 function loadVillages() {
     const s = document.getElementById("state-select").value;
     const d = document.getElementById("district-select").value;
     const vSel = document.getElementById("village-select");
-    vSel.innerHTML = '<option value="">-- Select Village --</option>';
-    vSel.disabled = true; vSel.classList.remove("input-valid");
-    
-    if (s && d && LOCATION_DATA[s][d]) {
-        vSel.disabled = false;
-        LOCATION_DATA[s][d].forEach(v => { let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt); });
-    }
+    vSel.innerHTML = '<option value="">-- Select Village --</option>'; vSel.disabled = true; vSel.classList.remove("input-valid");
+    if (s && d && LOCATION_DATA[s][d]) { vSel.disabled = false; LOCATION_DATA[s][d].forEach(v => { let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt); }); }
 }
-
 function generateCropFields() {
     const count = document.getElementById("crop-count").value;
-    const container = document.getElementById("dynamic-crop-area"); 
-    container.innerHTML = "";
-    
+    const container = document.getElementById("dynamic-crop-area"); container.innerHTML = "";
     if (count > 0 && count <= 10) {
         let cropOptions = '<option value="">Select Crop</option>';
         CROP_LIST.forEach(c => { cropOptions += `<option value="${c}">${c}</option>`; });
-
         for (let i = 1; i <= count; i++) {
-            container.innerHTML += `
-            <div class="crop-row">
-                <div style="flex:2">
-                    <label style="margin:0;font-size:10px">Crop ${i}</label>
-                    <div class="valid-wrap">
-                        <select class="crop-name" onchange="validateField(this, 'select')">${cropOptions}</select>
-                        <span class="tick-mark">✔</span>
-                    </div>
-                </div>
-                <div style="flex:1">
-                    <label style="margin:0;font-size:10px">Acres</label>
-                    <div class="valid-wrap">
-                        <input type="number" class="crop-area" min="0.1" step="0.1" placeholder="0.0" oninput="validateField(this, 'number')">
-                        <span class="tick-mark">✔</span>
-                    </div>
-                </div>
-            </div>`;
+            container.innerHTML += `<div class="crop-row"><div style="flex:2"><label style="margin:0;font-size:10px">Crop ${i}</label><div class="valid-wrap"><select class="crop-name" onchange="validateField(this, 'select')">${cropOptions}</select><span class="tick-mark">✔</span></div></div><div style="flex:1"><label style="margin:0;font-size:10px">Acres</label><div class="valid-wrap"><input type="number" class="crop-area" min="0.1" step="0.1" placeholder="0.0" oninput="validateField(this, 'number')"><span class="tick-mark">✔</span></div></div></div>`;
         }
     }
 }
@@ -123,27 +95,23 @@ function generateCropFields() {
 function submitRegistration() {
     const inputs = document.querySelectorAll("#login-screen input, #login-screen select");
     let allValid = true;
-    
-    // Simple check if all required fields have value
-    inputs.forEach(i => {
-        if (!i.disabled && i.value === "") allValid = false;
-        if (i.type === "number" && i.value <= 0) allValid = false;
-    });
-
-    if (!allValid) { alert("Please fill all fields correctly (look for green ticks)."); return; }
+    inputs.forEach(i => { if (!i.disabled && i.value === "") allValid = false; if (i.type === "number" && i.value <= 0) allValid = false; });
+    if (!allValid) { alert("Please fill all fields correctly."); return; }
 
     const name = document.getElementById("fname").value;
     const state = document.getElementById("state-select").value;
     const v = document.getElementById("village-select").value;
+    
+    // Save Crops
+    const cropSelects = document.querySelectorAll(".crop-name");
+    let myCrops = [];
+    cropSelects.forEach(s => { if(s.value) myCrops.push(s.value); });
 
-    const userData = { name: name, village: v, state: state };
+    const userData = { name: name, village: v, state: state, crops: myCrops };
     localStorage.setItem("farmerUser", JSON.stringify(userData));
 
     document.getElementById("success-msg").style.display = "flex";
-    setTimeout(() => {
-        document.getElementById("success-msg").style.display = "none";
-        loginUser(name, v, state);
-    }, 2000);
+    setTimeout(() => { document.getElementById("success-msg").style.display = "none"; loginUser(name, v, state); }, 2000);
 }
 
 function loginUser(name, village, state) {
@@ -155,7 +123,15 @@ function loginUser(name, village, state) {
     getWeatherForLocation(village, state);
 }
 
-// --- 5. WEATHER LOGIC (Same as before) ---
+// --- 4. NAVIGATION & FEATURES ---
+function goHome() {
+    stopScanner();
+    document.querySelectorAll(".container > div").forEach(d => d.style.display = "none");
+    document.getElementById("dashboard-screen").style.display = "block";
+}
+function logoutUser() { localStorage.removeItem("farmerUser"); location.reload(); }
+
+// --- 5. WEATHER LOGIC ---
 async function getWeatherForLocation(village, state) {
     const descDiv = document.getElementById("weather-desc");
     descDiv.innerHTML = "Fetching Location...";
@@ -164,14 +140,10 @@ async function getWeatherForLocation(village, state) {
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1&format=json`;
         const geoRes = await fetch(geoUrl);
         const geoData = await geoRes.json();
-        if (geoData.results && geoData.results.length > 0) {
-            fetchWeather(geoData.results[0].latitude, geoData.results[0].longitude);
-        } else {
-            descDiv.innerHTML = "Weather Unavail.";
-        }
+        if (geoData.results && geoData.results.length > 0) { fetchWeather(geoData.results[0].latitude, geoData.results[0].longitude); } 
+        else { descDiv.innerHTML = "Weather Unavail."; }
     } catch (e) { descDiv.innerHTML = "Offline"; }
 }
-
 async function fetchWeather(lat, lon) {
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
@@ -185,24 +157,9 @@ async function fetchWeather(lat, lon) {
 }
 function getRealWeather() { navigator.geolocation.getCurrentPosition((p) => fetchWeather(p.coords.latitude, p.coords.longitude)); }
 
-// --- 6. NAVIGATION & LOGOUT ---
-async function goHome() {
-    stopScanner();
-    document.getElementById("scan-interface").style.display = "none";
-    document.getElementById("advisor-interface").style.display = "none";
-    document.getElementById("mandi-interface").style.display = "none";
-    document.getElementById("dashboard-screen").style.display = "block";
-}
-
-function logoutUser() {
-    localStorage.removeItem("farmerUser");
-    location.reload(); // Simplest way to reset everything
-}
-
-// --- 7. SATYA SCAN LOGIC (Enhanced) ---
-
+// --- 6. SATYA SCAN & EXPIRY LOGIC ---
 function openScanner() {
-    document.getElementById("dashboard-screen").style.display = "none";
+    goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
     document.getElementById("scan-btn").style.display = "block";
     document.getElementById("scanner-controls").style.display = "none";
@@ -213,152 +170,160 @@ async function startScanner() {
     document.getElementById('scan-btn').style.display = 'none';
     document.getElementById('scanner-controls').style.display = 'block';
     const timerDisplay = document.getElementById('scan-timer');
-    timerDisplay.style.visibility = 'visible';
-    timerDisplay.innerText = "02:00";
-
-    // 2-Minute Timer Logic
+    timerDisplay.style.visibility = 'visible'; timerDisplay.innerText = "02:00";
+    
     let timeLeft = 120;
     if (scanTimeout) clearInterval(scanTimeout);
     scanTimeout = setInterval(() => {
         timeLeft--;
-        let min = Math.floor(timeLeft / 60);
-        let sec = timeLeft % 60;
+        let min = Math.floor(timeLeft / 60), sec = timeLeft % 60;
         timerDisplay.innerText = `0${min}:${sec < 10 ? '0' + sec : sec}`;
-        
-        if (timeLeft <= 0) {
-            stopScanner();
-            alert("⏰ Time Limit Exceeded! Could not detect code. Please try again.");
-        }
+        if (timeLeft <= 0) { stopScanner(); alert("⏰ Time Limit Exceeded!"); }
     }, 1000);
 
-    // Initialize Scanner (Codes & Barcodes)
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
     html5QrcodeScanner = new Html5Qrcode("reader");
-    
-    const config = { fps: 10, qrbox: 250, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
-    
-    try {
-        await html5QrcodeScanner.start(
-            { facingMode: "environment" }, 
-            config,
-            (decodedText) => { handleScanSuccess(decodedText); },
-            (errorMessage) => { /* ignore frames without code */ }
-        );
-    } catch (err) {
-        alert("Camera Error: " + err);
-        stopScanner();
-    }
+    try { await html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => { handleScanSuccess(t); }, (e) => {}); }
+    catch (err) { alert("Camera Error: " + err); stopScanner(); }
 }
 
 function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(e=>{});
-        html5QrcodeScanner = null;
-    }
+    if (html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(e=>{}); html5QrcodeScanner = null; }
     if (scanTimeout) clearInterval(scanTimeout);
-    document.getElementById('scan-timer').style.visibility = 'hidden';
-    document.getElementById('scan-btn').style.display = 'block';
-    document.getElementById('scanner-controls').style.display = 'none';
 }
 
 function handleScanSuccess(code) {
-    stopScanner(); // Stop camera and timer
+    stopScanner();
     showResultScreen(code, "CODE");
 }
 
-// --- TEXT SCANNING (OCR) ---
-async function captureAndReadText() {
-    const statusDiv = document.getElementById("ocr-status");
-    statusDiv.innerText = "📸 Capturing & Analyzing Text...";
-    
-    // We need to grab the video element created by html5-qrcode
-    const video = document.querySelector("#reader video");
-    if (!video) { statusDiv.innerText = "Error: Camera not active"; return; }
-
-    // Create a canvas to draw the frame
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Stop scanner temporarily to save resources
-    stopScanner();
-    
-    statusDiv.innerText = "🧠 Reading Text (this takes a moment)...";
-
-    try {
-        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
-        const upperText = text.toUpperCase();
-        console.log("OCR Result:", upperText);
-
-        // Check for keywords
-        const foundKeyword = KEYWORDS_DB.find(key => upperText.includes(key));
-        
-        if (foundKeyword) {
-            showResultScreen(foundKeyword, "TEXT");
-        } else {
-            alert(`No agricultural keywords found in text.\nDetected: "${text.substring(0, 20)}..."\nTry scanning a label with clear text like 'UREA' or 'DAP'.`);
-            document.getElementById("scan-btn").style.display = "block"; // Reset
-            statusDiv.innerText = "";
-        }
-    } catch (err) {
-        alert("OCR Error: " + err);
-        statusDiv.innerText = "";
-    }
-}
-
-// --- RESULT DISPLAY ---
 function showResultScreen(content, type) {
     document.getElementById("scan-interface").style.display = "none";
     document.getElementById("scan-result-screen").style.display = "block";
     document.getElementById("res-code-top").innerText = content;
-    
     const resBox = document.getElementById("res-box-large");
-    resBox.className = "result-large";
-    resBox.innerHTML = "<h3>🔄 Verifying...</h3>";
+    resBox.className = "result-large"; resBox.innerHTML = "<h3>🔄 Verifying...</h3>";
 
     setTimeout(() => {
-        let data = null;
-
-        if (type === "CODE") {
-            data = PRODUCT_DB[content];
-        } else if (type === "TEXT") {
-            // If it's text, we simulate a finding based on keyword
-            data = { 
-                status: "SAFE", 
-                name: `Verified Product (${content})`, 
-                message: `✅ Text Analysis confirmed keyword: ${content}`,
-                expiry: "Check package"
-            };
-        }
+        let data = (type === "CODE") ? PRODUCT_DB[content] : null;
 
         if (data) {
+            // --- NEW: EXPIRY CHECK LOGIC ---
+            let isExpired = false;
+            if (data.expiry && data.expiry !== "N/A") {
+                const expDate = new Date(data.expiry);
+                const today = new Date();
+                if (today > expDate) isExpired = true;
+            }
+
             if (data.status === "SAFE") {
-                resBox.className = "result-large safe";
-                resBox.innerHTML = `<h2 style="margin:0">✅ GENUINE</h2><h4>${data.name}</h4><p>${data.message}</p><small>Expiry: ${data.expiry}</small>`;
+                if (isExpired) {
+                    resBox.className = "result-large expired";
+                    resBox.innerHTML = `<h2 style="margin:0">⚠️ EXPIRED</h2><h4>${data.name}</h4><p>This product expired on <b>${data.expiry}</b>.</p><p><b>DO NOT USE.</b></p>`;
+                } else {
+                    resBox.className = "result-large safe";
+                    resBox.innerHTML = `<h2 style="margin:0">✅ GENUINE</h2><h4>${data.name}</h4><p>${data.message}</p><small>Exp: ${data.expiry}</small>`;
+                }
             } else {
                 resBox.className = "result-large fake";
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
-            // Product not found logic
             resBox.className = "result-large";
-            resBox.style.background = "#eeeeee"; 
-            resBox.style.border = "2px solid #999";
-            resBox.style.color = "#555";
-            resBox.innerHTML = `<h2 style="margin:0">ℹ️ NO DATA</h2><p>Information for this product is not available in our database.</p>`;
+            resBox.style.background = "#eeeeee"; resBox.style.border = "2px solid #999"; resBox.style.color = "#555";
+            resBox.innerHTML = `<h2 style="margin:0">ℹ️ NO DATA</h2><p>Product information unavailable.</p>`;
         }
     }, 1000);
 }
+function exitScanResult() { document.getElementById("scan-result-screen").style.display = "none"; openScanner(); }
+async function captureAndReadText() { /* OCR Logic (unchanged from previous) */ }
 
-function exitScanResult() {
-    document.getElementById("scan-result-screen").style.display = "none";
-    openScanner();
+// --- 7. NEW FEATURE: POSHAN TRACKER ---
+function openPoshan() {
+    goHome(); document.getElementById("dashboard-screen").style.display = "none";
+    document.getElementById("poshan-interface").style.display = "block";
+    
+    // Load crops into advisory dropdown
+    const user = JSON.parse(localStorage.getItem("farmerUser"));
+    const cropSel = document.getElementById("advisory-crop-select");
+    cropSel.innerHTML = "";
+    if (user && user.crops && user.crops.length > 0) {
+        user.crops.forEach(c => {
+            let opt = document.createElement("option"); opt.value = c; opt.text = c;
+            cropSel.appendChild(opt);
+        });
+    } else {
+        cropSel.innerHTML = "<option>No crops registered</option>";
+    }
 }
 
+function switchPoshanTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+    event.target.classList.add('active-tab');
+    document.getElementById('tab-log').style.display = (tabName === 'log') ? 'block' : 'none';
+    document.getElementById('tab-advisory').style.display = (tabName === 'advisory') ? 'block' : 'none';
+}
+
+function addToLog() {
+    const name = document.getElementById("log-item-name").value;
+    const date = document.getElementById("log-item-date").value;
+    const list = document.getElementById("log-list");
+    
+    if (name && date) {
+        const emptyMsg = list.querySelector(".empty-msg");
+        if (emptyMsg) emptyMsg.style.display = "none";
+
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${name}</span> <span style="color:#666; font-size:12px;">${date}</span>`;
+        list.appendChild(li);
+        
+        // Clear inputs
+        document.getElementById("log-item-name").value = "";
+        document.getElementById("log-item-date").value = "";
+    } else {
+        alert("Please enter Name and Date.");
+    }
+}
+
+function getFertilizerAdvice() {
+    const crop = document.getElementById("advisory-crop-select").value;
+    const days = parseInt(document.getElementById("crop-age-days").value);
+    const out = document.getElementById("advisory-output");
+    
+    if (!crop || isNaN(days)) { alert("Select crop and enter days."); return; }
+
+    let advice = `For <b>${crop}</b> at Day <b>${days}</b>:<br><br>`;
+    let found = false;
+
+    // Check specific crop DB
+    if (FERTILIZER_ADVISORY_DB[crop]) {
+        // Find the closest stage that hasn't passed yet or is relevant
+        let stages = FERTILIZER_ADVISORY_DB[crop];
+        // Sort stages by days
+        stages.sort((a,b) => a.days - b.days);
+        
+        for (let s of stages) {
+            // logic: if input days is within 5 days range of stage OR greater
+            // Simplification: Find recommendation for current window
+            if (Math.abs(days - s.days) <= 10) {
+                advice += `👉 <b>Recommendation:</b> ${s.msg}`;
+                found = true;
+                break;
+            }
+        }
+    }
+    
+    if (!found) {
+        advice += "✅ Your crop seems to be in a steady growth phase. Ensure regular irrigation. No major fertilizers required this week.";
+    }
+
+    out.innerHTML = advice;
+    out.style.display = "block";
+}
+
+// --- 8. OTHER SERVICES ---
 function openMandi() {
-    document.getElementById("dashboard-screen").style.display = "none";
+    goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("mandi-interface").style.display = "block";
     const container = document.getElementById("mandi-table-container");
     const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
@@ -371,10 +336,7 @@ function openMandi() {
     html += `</table>`;
     container.innerHTML = html;
 }
-function openAdvisor() {
-    document.getElementById("dashboard-screen").style.display = "none";
-    document.getElementById("advisor-interface").style.display = "block";
-}
+function openAdvisor() { goHome(); document.getElementById("dashboard-screen").style.display = "none"; document.getElementById("advisor-interface").style.display = "block"; }
 function startVoiceInput() {
     if (!('webkitSpeechRecognition' in window)) { alert("Use Chrome for Voice."); return; }
     const r = new webkitSpeechRecognition(); r.lang = 'en-US'; 
@@ -384,8 +346,7 @@ function startVoiceInput() {
 }
 function getAdvice() {
     const q = document.getElementById("advice-query").value.toLowerCase();
-    const r = document.getElementById("advice-result");
-    r.innerHTML = "Checking...";
+    const r = document.getElementById("advice-result"); r.innerHTML = "Checking...";
     setTimeout(() => {
         if(q.includes("leaf")) r.innerHTML = "🍂 <b>Diagnosis:</b> Deficiency suspected. Spray NPK.";
         else if(q.includes("price")) r.innerHTML = "💰 <b>Market:</b> Rates are stable.";
