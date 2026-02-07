@@ -59,9 +59,9 @@
                         <h3 id="welcome-text" style="color:white; margin:0;">Welcome!</h3>
                         <p id="location-text" style="margin:5px 0 0; opacity:0.9; font-size:13px;">Location: Unknown</p>
                     </div>
-                    <div style="text-align:right;">
+                    <div style="text-align:right; cursor: pointer;" onclick="getRealWeather()" title="Tap to refresh weather">
                         <div id="weather-temp" style="font-size: 28px; font-weight:bold;">--°C</div>
-                        <div id="weather-desc" style="font-size: 12px;">Loading...</div>
+                        <div id="weather-desc" style="font-size: 12px;">Tap to Load Weather</div>
                     </div>
                 </div>
             </div>
@@ -80,11 +80,7 @@
                     <span class="icon-symbol">💰</span>
                     <div class="icon-title">MANDI RATES</div>
                 </div>
-                <div class="flashy-icon" onclick="alert('Calling Kisan Call Center: 1800-180-1551...')">
-                    <span class="icon-symbol">📞</span>
-                    <div class="icon-title">HELPLINE</div>
                 </div>
-            </div>
 
             <button class="btn-logout" onclick="logoutUser()">🚪 Logout</button>
         </div>
