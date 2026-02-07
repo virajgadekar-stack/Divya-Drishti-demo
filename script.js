@@ -22,14 +22,12 @@ const LOCATION_DATA = {
 
 // --- 2. INITIALIZATION ---
 window.onload = function() {
-    // Check if user is already registered in LocalStorage
     const savedUser = localStorage.getItem("farmerUser");
     if (savedUser) {
         const user = JSON.parse(savedUser);
         loginUser(user.name, user.village);
     }
 
-    // Load States into Dropdown
     const stateSelect = document.getElementById("state-select");
     for (let state in LOCATION_DATA) {
         let opt = document.createElement("option"); opt.value = state; opt.text = state;
@@ -42,8 +40,6 @@ function loadDistricts() {
     const s = document.getElementById("state-select").value;
     const dSel = document.getElementById("district-select");
     const vSel = document.getElementById("village-select");
-    
-    // Reset Dropdowns
     dSel.innerHTML = '<option value="">-- Select District --</option>'; 
     vSel.innerHTML = '<option value="">-- Select Village --</option>';
     vSel.disabled = true;
@@ -53,16 +49,13 @@ function loadDistricts() {
         for (let d in LOCATION_DATA[s]) {
             let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt);
         }
-    } else { 
-        dSel.disabled = true; 
-    }
+    } else { dSel.disabled = true; }
 }
 
 function loadVillages() {
     const s = document.getElementById("state-select").value;
     const d = document.getElementById("district-select").value;
     const vSel = document.getElementById("village-select");
-
     vSel.innerHTML = '<option value="">-- Select Village --</option>';
     
     if (s && d && LOCATION_DATA[s][d]) {
@@ -70,9 +63,7 @@ function loadVillages() {
         LOCATION_DATA[s][d].forEach(v => {
             let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt);
         });
-    } else { 
-        vSel.disabled = true; 
-    }
+    } else { vSel.disabled = true; }
 }
 
 function generateCropFields() {
@@ -91,11 +82,9 @@ function submitRegistration() {
     
     if (!name || !v) { alert("Please fill all details!"); return; }
 
-    // Save to LocalStorage (Persist Data)
     const userData = { name: name, village: v };
     localStorage.setItem("farmerUser", JSON.stringify(userData));
 
-    // Show Success UI
     document.getElementById("success-msg").style.display = "flex";
     setTimeout(() => {
         document.getElementById("success-msg").style.display = "none";
@@ -110,11 +99,32 @@ function loginUser(name, village) {
     document.getElementById("location-text").innerText = `📍 ${village}`;
 }
 
-// --- 4. NAVIGATION ---
+// --- 4. LOGOUT LOGIC (NEW) ---
+function logoutUser() {
+    // 1. Clear saved data
+    localStorage.removeItem("farmerUser");
+
+    // 2. Hide Dashboard
+    document.getElementById("dashboard-screen").style.display = "none";
+
+    // 3. Show Login Screen
+    document.getElementById("login-screen").style.display = "block";
+
+    // 4. Reset Inputs (Optional)
+    document.getElementById("fname").value = "";
+    document.getElementById("state-select").value = "";
+    document.getElementById("district-select").innerHTML = '<option value="">-- Select District --</option>';
+    document.getElementById("district-select").disabled = true;
+    document.getElementById("village-select").innerHTML = '<option value="">-- Select Village --</option>';
+    document.getElementById("village-select").disabled = true;
+    document.getElementById("crop-count").value = "";
+    document.getElementById("dynamic-crop-area").innerHTML = "";
+}
+
+// --- 5. NAVIGATION ---
 let html5QrcodeScanner = null;
 
 async function goHome() {
-    // Stop Scanner if active
     if (html5QrcodeScanner) {
         try { await html5QrcodeScanner.stop(); await html5QrcodeScanner.clear(); } catch(e){}
         html5QrcodeScanner = null;
@@ -127,7 +137,6 @@ async function goHome() {
 function openScanner() {
     document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
-    // Ensure button is ready
     document.getElementById("scan-btn").style.display = "block";
 }
 
@@ -136,20 +145,17 @@ function openAdvisor() {
     document.getElementById("advisor-interface").style.display = "block";
 }
 
-// --- 5. SCANNER LOGIC ---
+// --- 6. SCANNER LOGIC ---
 async function startScanner() {
     document.getElementById('scan-btn').style.display = 'none';
-    
-    // Cleanup previous instance if exists
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
-    
     html5QrcodeScanner = new Html5Qrcode("reader");
     try {
         await html5QrcodeScanner.start(
             { facingMode: "environment" }, 
             { fps: 10, qrbox: 250 },
             (decodedText) => { handleScanSuccess(decodedText); },
-            (errorMessage) => { /* scanning... */ }
+            (errorMessage) => { }
         );
     } catch (err) {
         alert("Camera Error: " + err);
@@ -158,26 +164,18 @@ async function startScanner() {
 }
 
 async function handleScanSuccess(code) {
-    // Stop the camera
     if (html5QrcodeScanner) {
         await html5QrcodeScanner.stop();
         await html5QrcodeScanner.clear();
         html5QrcodeScanner = null;
     }
-
-    // Switch Screens
     document.getElementById("scan-interface").style.display = "none";
     document.getElementById("scan-result-screen").style.display = "block";
-    
-    // Display Logic
     document.getElementById("res-code-top").innerText = code;
     const resBox = document.getElementById("res-box-large");
-    
-    // Loading State
     resBox.className = "result-large";
     resBox.innerHTML = "<h3>🔄 Verifying...</h3>";
     
-    // Simulated Delay
     setTimeout(() => {
         const data = PRODUCT_DB[code];
         if (data) {
@@ -189,9 +187,8 @@ async function handleScanSuccess(code) {
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
-            // Unknown Product
             resBox.className = "result-large";
-            resBox.style.background = "#fff3cd"; // Yellow warning
+            resBox.style.background = "#fff3cd"; 
             resBox.style.border = "2px solid #ffc107";
             resBox.style.color = "#856404";
             resBox.innerHTML = `<h2 style="margin:0">⚠️ UNKNOWN</h2><p>Product code not found in database.</p>`;
@@ -201,29 +198,24 @@ async function handleScanSuccess(code) {
 
 function exitScanResult() {
     document.getElementById("scan-result-screen").style.display = "none";
-    openScanner(); // Go back to scanner ready state
+    openScanner(); 
 }
 
-// --- 6. ADVISOR & VOICE LOGIC ---
+// --- 7. ADVISOR & VOICE LOGIC ---
 function startVoiceInput() {
     if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported in this browser. Try Chrome."); return; }
-    
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-US'; 
     recognition.continuous = false;
-    
     const micBtn = document.getElementById("mic-btn");
     micBtn.classList.add("mic-listening");
-
     recognition.onstart = function() { document.getElementById("advice-query").placeholder = "Listening..."; };
-    
     recognition.onresult = function(event) {
         const txt = event.results[0][0].transcript;
         document.getElementById("advice-query").value = txt;
         micBtn.classList.remove("mic-listening");
-        getAdvice(); // Auto submit
+        getAdvice();
     };
-
     recognition.onerror = function() { micBtn.classList.remove("mic-listening"); };
     recognition.onend = function() { micBtn.classList.remove("mic-listening"); };
     recognition.start();
@@ -232,12 +224,9 @@ function startVoiceInput() {
 function getAdvice() {
     const query = document.getElementById("advice-query").value.toLowerCase();
     const res = document.getElementById("advice-result");
-    
     res.innerHTML = "Thinking...";
-    
     setTimeout(() => {
         let advice = "";
-        
         if (query.includes("yellow") || query.includes("leaf")) {
             advice = "🍂 <b>Diagnosis:</b> Nitrogen Deficiency.\n👉 <b>Remedy:</b> Apply Urea (20kg/acre) or spray NPK 19:19:19.";
         } else if (query.includes("price") || query.includes("rate")) {
