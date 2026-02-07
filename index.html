@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Divya Drishti | Smart Farmer App</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,26 +28,64 @@
         <div id="login-screen" class="card">
             <h3 style="margin-top:0; text-align:center;">Farmer Registration</h3>
             
-            <label>Full Name</label>
-            <input type="text" id="fname" placeholder="Enter Farmer Name">
+            <div class="input-group">
+                <label>Full Name</label>
+                <div class="valid-wrap">
+                    <input type="text" id="fname" placeholder="Enter Farmer Name" oninput="validateField(this, 'text')">
+                    <span class="tick-mark">✔</span>
+                </div>
+            </div>
 
-            <label>State</label>
-            <select id="state-select" onchange="loadDistricts()">
-                <option value="">-- Select State --</option>
-            </select>
+            <div class="input-group">
+                <label>State</label>
+                <div class="valid-wrap">
+                    <select id="state-select" onchange="loadDistricts(); validateField(this, 'select')">
+                        <option value="">-- Select State --</option>
+                    </select>
+                    <span class="tick-mark">✔</span>
+                </div>
+            </div>
 
-            <label>District</label>
-            <select id="district-select" onchange="loadVillages()" disabled>
-                <option value="">-- Select District --</option>
-            </select>
+            <div class="input-group">
+                <label>District</label>
+                <div class="valid-wrap">
+                    <select id="district-select" onchange="loadVillages(); validateField(this, 'select')" disabled>
+                        <option value="">-- Select District --</option>
+                    </select>
+                    <span class="tick-mark">✔</span>
+                </div>
+            </div>
 
-            <label>Village / Town</label>
-            <select id="village-select" disabled>
-                <option value="">-- Select Village --</option>
-            </select>
+            <div class="input-group">
+                <label>Village / Town</label>
+                <div class="valid-wrap">
+                    <select id="village-select" onchange="validateField(this, 'select')" disabled>
+                        <option value="">-- Select Village --</option>
+                    </select>
+                    <span class="tick-mark">✔</span>
+                </div>
+            </div>
 
-            <label>Number of Crops</label>
-            <input type="number" id="crop-count" min="1" max="5" placeholder="e.g. 2" oninput="generateCropFields()">
+            <div class="input-group">
+                <label>Number of Crops (1-10)</label>
+                <div class="valid-wrap">
+                    <select id="crop-count" onchange="generateCropFields(); validateField(this, 'select')">
+                        <option value="">-- Select --</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                    </select>
+                    <span class="tick-mark">✔</span>
+                </div>
+            </div>
+
             <div id="dynamic-crop-area"></div>
 
             <button class="btn-primary" onclick="submitRegistration()">REGISTER & LOGIN</button>
@@ -80,7 +119,7 @@
                     <span class="icon-symbol">💰</span>
                     <div class="icon-title">MANDI RATES</div>
                 </div>
-                </div>
+            </div>
 
             <button class="btn-logout" onclick="logoutUser()">🚪 Logout</button>
         </div>
@@ -88,16 +127,27 @@
         <div id="scan-interface">
             <button class="back-btn" onclick="goHome()">← Back to Home</button>
             <div class="card">
-                <h3>📷 Satya Scan</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>📷 Satya Scan</h3>
+                    <span id="scan-timer" style="color:red; font-weight:bold; font-size:14px; visibility: hidden;">02:00</span>
+                </div>
+                
                 <div id="reader" style="width:100%;"></div>
-                <button class="btn-primary" id="scan-btn" onclick="startScanner()">START SCANNING</button>
+                
+                <div id="scanner-controls" style="margin-top:15px; display:none;">
+                    <p style="font-size:12px; text-align:center; color:#666;">Point camera at QR, Barcode, or Text.</p>
+                    <button class="btn-outline" id="snap-text-btn" onclick="captureAndReadText()">📝 Scan Text (OCR)</button>
+                </div>
+
+                <button class="btn-primary" id="scan-btn" onclick="startScanner()">START CAMERA</button>
+                <div id="ocr-status" style="text-align:center; font-size:12px; color:blue; margin-top:5px;"></div>
             </div>
         </div>
 
         <div id="scan-result-screen">
             <div class="card">
                 <h3 style="text-align: center;">Scan Results</h3>
-                <label>Scanned Code Reading:</label>
+                <label>Detected Content:</label>
                 <div id="res-code-top" class="scan-code-display">Pending...</div>
                 <div id="res-box-large" class="result-large">Verifying...</div>
                 <button class="btn-outline" onclick="exitScanResult()">DONE / SCAN NEXT</button>
