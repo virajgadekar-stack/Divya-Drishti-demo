@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divya Drishti | Smart Farmer App</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="success-msg">
+        <div class="shield-logo" style="transform: scale(1.5); margin-bottom: 20px;"></div>
+        <h2 style="margin:0;">REGISTRATION SUCCESSFUL!</h2>
+        <p>Redirecting to Dashboard...</p>
+    </div>
+
+    <header>
+        <div class="shield-logo"></div>
+        <h1>Divya Drishti</h1>
+        <div style="font-size: 12px; opacity: 0.8;">Secure. Smart. Sustainable.</div>
+    </header>
+
+    <div class="container">
+        
+        <div id="login-screen" class="card">
+            <h3 style="margin-top:0; text-align:center;">Farmer Registration</h3>
+            
+            <label>Full Name</label>
+            <input type="text" id="fname" placeholder="Enter Farmer Name">
+
+            <label>State</label>
+            <select id="state-select" onchange="loadDistricts()">
+                <option value="">-- Select State --</option>
+            </select>
+
+            <label>District</label>
+            <select id="district-select" onchange="loadVillages()" disabled>
+                <option value="">-- Select District --</option>
+            </select>
+
+            <label>Village / Town</label>
+            <select id="village-select" disabled>
+                <option value="">-- Select Village --</option>
+            </select>
+
+            <label>Number of Crops</label>
+            <input type="number" id="crop-count" min="1" max="5" placeholder="e.g. 2" oninput="generateCropFields()">
+            <div id="dynamic-crop-area"></div>
+
+            <button class="btn-primary" onclick="submitRegistration()">REGISTER & LOGIN</button>
+        </div>
+
+        <div id="dashboard-screen">
+            <div class="card" style="background: #2e7d32; color: white; margin-bottom: 20px;">
+                <h3 id="welcome-text" style="color:white; margin:0;">Welcome!</h3>
+                <p id="location-text" style="margin:5px 0 0; opacity:0.8; font-size:13px;">Location: Unknown</p>
+            </div>
+
+            <h3 style="text-align: center; margin-bottom: 10px;">Services</h3>
+            <div class="dashboard-grid">
+                <div class="flashy-icon" onclick="openScanner()">
+                    <span class="icon-symbol">📷</span>
+                    <div class="icon-title">SATYA SCAN</div>
+                </div>
+                <div class="flashy-icon" onclick="openAdvisor()">
+                    <span class="icon-symbol">🌾</span>
+                    <div class="icon-title">AGRI GYANI</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scan-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            <div class="card">
+                <h3>📷 Satya Scan</h3>
+                <div id="reader" style="width:100%;"></div>
+                <button class="btn-primary" id="scan-btn" onclick="startScanner()">START SCANNING</button>
+            </div>
+        </div>
+
+        <div id="scan-result-screen">
+            <div class="card">
+                <h3 style="text-align: center;">Scan Results</h3>
+                <label>Scanned Code Reading:</label>
+                <div id="res-code-top" class="scan-code-display">Pending...</div>
+                <div id="res-box-large" class="result-large">Verifying...</div>
+                <button class="btn-outline" onclick="exitScanResult()">DONE / SCAN NEXT</button>
+            </div>
+        </div>
+
+        <div id="advisor-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            <div class="card">
+                <h3>🌾 Agri-Gyani Advisor</h3>
+                <p style="font-size:13px; color:#666;">Ask me about crop diseases, market prices, or weather.</p>
+                <div class="voice-search-container">
+                    <input type="text" id="advice-query" placeholder="Type or use Mic...">
+                    <button id="mic-btn" class="mic-btn" onclick="startVoiceInput()">🎤</button>
+                </div>
+                <button class="btn-primary" onclick="getAdvice()">GET ADVICE</button>
+                <div id="advice-result" style="margin-top:15px; font-weight:500; white-space: pre-line;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
