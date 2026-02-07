@@ -1,17 +1,7 @@
 // --- 1. LOCAL DATABASE SIMULATION ---
 const PRODUCT_DB = {
-    "DATA-TRUST-101": {
-        status: "SAFE",
-        name: "Mahyco Cotton Seeds (Bt)",
-        message: "✅ GENUINE. Batch #MH-2025 verified.",
-        expiry: "Dec 2025"
-    },
-    "FAKE-PESTICIDE-99": {
-        status: "FAKE",
-        name: "Counterfeit / Unknown",
-        message: "❌ WARNING: Fake Product Detected!",
-        expiry: "N/A"
-    }
+    "DATA-TRUST-101": { status: "SAFE", name: "Mahyco Cotton Seeds (Bt)", message: "✅ GENUINE. Batch #MH-2025 verified.", expiry: "Dec 2025" },
+    "FAKE-PESTICIDE-99": { status: "FAKE", name: "Counterfeit / Unknown", message: "❌ WARNING: Fake Product Detected!", expiry: "N/A" }
 };
 
 const LOCATION_DATA = {
@@ -20,12 +10,33 @@ const LOCATION_DATA = {
     "Punjab": { "Ludhiana": ["Khanna", "Jagraon"], "Amritsar": ["Ajnala", "Baba Bakala"] }
 };
 
+// Simulated Mandi Data
+const MANDI_DATA = {
+    "Maharashtra": [
+        { crop: "Onion", price: "₹2,400/q", trend: "up" },
+        { crop: "Cotton", price: "₹7,800/q", trend: "down" },
+        { crop: "Soybean", price: "₹4,600/q", trend: "up" }
+    ],
+    "Gujarat": [
+        { crop: "Groundnut", price: "₹6,200/q", trend: "up" },
+        { crop: "Cotton", price: "₹7,900/q", trend: "up" },
+        { crop: "Jeera", price: "₹25,000/q", trend: "down" }
+    ],
+    "Punjab": [
+        { crop: "Wheat", price: "₹2,275/q", trend: "up" },
+        { crop: "Paddy", price: "₹2,203/q", trend: "up" },
+        { crop: "Maize", price: "₹2,090/q", trend: "down" }
+    ]
+};
+
 // --- 2. INITIALIZATION ---
+let currentUserState = "Maharashtra"; // Default
+
 window.onload = function() {
     const savedUser = localStorage.getItem("farmerUser");
     if (savedUser) {
         const user = JSON.parse(savedUser);
-        loginUser(user.name, user.village);
+        loginUser(user.name, user.village, user.state);
     }
 
     const stateSelect = document.getElementById("state-select");
@@ -40,15 +51,11 @@ function loadDistricts() {
     const s = document.getElementById("state-select").value;
     const dSel = document.getElementById("district-select");
     const vSel = document.getElementById("village-select");
-    dSel.innerHTML = '<option value="">-- Select District --</option>'; 
-    vSel.innerHTML = '<option value="">-- Select Village --</option>';
+    dSel.innerHTML = '<option value="">-- Select District --</option>'; vSel.innerHTML = '<option value="">-- Select Village --</option>';
     vSel.disabled = true;
-
     if (s && LOCATION_DATA[s]) {
         dSel.disabled = false;
-        for (let d in LOCATION_DATA[s]) {
-            let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt);
-        }
+        for (let d in LOCATION_DATA[s]) { let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt); }
     } else { dSel.disabled = true; }
 }
 
@@ -57,12 +64,9 @@ function loadVillages() {
     const d = document.getElementById("district-select").value;
     const vSel = document.getElementById("village-select");
     vSel.innerHTML = '<option value="">-- Select Village --</option>';
-    
     if (s && d && LOCATION_DATA[s][d]) {
         vSel.disabled = false;
-        LOCATION_DATA[s][d].forEach(v => {
-            let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt);
-        });
+        LOCATION_DATA[s][d].forEach(v => { let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt); });
     } else { vSel.disabled = true; }
 }
 
@@ -78,39 +82,47 @@ function generateCropFields() {
 
 function submitRegistration() {
     const name = document.getElementById("fname").value;
+    const state = document.getElementById("state-select").value;
     const v = document.getElementById("village-select").value;
     
-    if (!name || !v) { alert("Please fill all details!"); return; }
+    if (!name || !v || !state) { alert("Please fill all details!"); return; }
 
-    const userData = { name: name, village: v };
+    const userData = { name: name, village: v, state: state };
     localStorage.setItem("farmerUser", JSON.stringify(userData));
 
     document.getElementById("success-msg").style.display = "flex";
     setTimeout(() => {
         document.getElementById("success-msg").style.display = "none";
-        loginUser(name, v);
+        loginUser(name, v, state);
     }, 2000);
 }
 
-function loginUser(name, village) {
+function loginUser(name, village, state) {
+    currentUserState = state || "Maharashtra";
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("dashboard-screen").style.display = "block";
     document.getElementById("welcome-text").innerText = `Namaste, ${name} ji!`;
-    document.getElementById("location-text").innerText = `📍 ${village}`;
+    document.getElementById("location-text").innerText = `📍 ${village}, ${state || ""}`;
+    updateWeather();
 }
 
-// --- 4. LOGOUT LOGIC (NEW) ---
+function updateWeather() {
+    // Simulated Weather Data
+    const temps = [28, 30, 32, 29, 34];
+    const conditions = ["Sunny", "Partly Cloudy", "Clear Sky", "Haze"];
+    
+    const randomTemp = temps[Math.floor(Math.random() * temps.length)];
+    const randomCond = conditions[Math.floor(Math.random() * conditions.length)];
+
+    document.getElementById("weather-temp").innerText = `${randomTemp}°C`;
+    document.getElementById("weather-desc").innerText = randomCond;
+}
+
 function logoutUser() {
-    // 1. Clear saved data
     localStorage.removeItem("farmerUser");
-
-    // 2. Hide Dashboard
     document.getElementById("dashboard-screen").style.display = "none";
-
-    // 3. Show Login Screen
     document.getElementById("login-screen").style.display = "block";
-
-    // 4. Reset Inputs (Optional)
+    // Reset fields
     document.getElementById("fname").value = "";
     document.getElementById("state-select").value = "";
     document.getElementById("district-select").innerHTML = '<option value="">-- Select District --</option>';
@@ -121,7 +133,7 @@ function logoutUser() {
     document.getElementById("dynamic-crop-area").innerHTML = "";
 }
 
-// --- 5. NAVIGATION ---
+// --- 4. NAVIGATION ---
 let html5QrcodeScanner = null;
 
 async function goHome() {
@@ -131,6 +143,7 @@ async function goHome() {
     }
     document.getElementById("scan-interface").style.display = "none";
     document.getElementById("advisor-interface").style.display = "none";
+    document.getElementById("mandi-interface").style.display = "none";
     document.getElementById("dashboard-screen").style.display = "block";
 }
 
@@ -145,7 +158,28 @@ function openAdvisor() {
     document.getElementById("advisor-interface").style.display = "block";
 }
 
-// --- 6. SCANNER LOGIC ---
+function openMandi() {
+    document.getElementById("dashboard-screen").style.display = "none";
+    document.getElementById("mandi-interface").style.display = "block";
+
+    const container = document.getElementById("mandi-table-container");
+    const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
+
+    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price (per Quintal)</th><th>Trend</th></tr>`;
+    rates.forEach(item => {
+        const arrow = item.trend === "up" ? "▲" : "▼";
+        const colorClass = item.trend === "up" ? "price-up" : "price-down";
+        html += `<tr>
+            <td>${item.crop}</td>
+            <td>${item.price}</td>
+            <td class="${colorClass}">${arrow}</td>
+        </tr>`;
+    });
+    html += `</table>`;
+    container.innerHTML = html;
+}
+
+// --- 5. SCANNER LOGIC ---
 async function startScanner() {
     document.getElementById('scan-btn').style.display = 'none';
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
@@ -201,7 +235,7 @@ function exitScanResult() {
     openScanner(); 
 }
 
-// --- 7. ADVISOR & VOICE LOGIC ---
+// --- 6. ADVISOR & VOICE LOGIC ---
 function startVoiceInput() {
     if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported in this browser. Try Chrome."); return; }
     const recognition = new webkitSpeechRecognition();
