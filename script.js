@@ -9,9 +9,9 @@ const PRODUCT_DB = {
 const KEYWORDS_DB = ["UREA", "DAP", "ZINC", "NPK", "COTTON", "PESTICIDE", "SEED", "IFFCO", "MAHYCO"];
 
 const FERTILIZER_ADVISORY_DB = {
-    "Wheat": [ { days: 21, msg: "CRI Stage: Apply Urea + Zinc. Irrigate now." }, { days: 45, msg: "Tillering: Apply Urea. Check for yellowing." } ],
+    "Wheat": [ { days: 21, msg: "CRI Stage: Apply Urea + Zinc. Irrigate now." }, { days: 45, msg: "Tillering: Apply Urea. Check for yellowing." }, { days: 65, msg: "Flowering: Spray NPK 0:52:34." } ],
     "Rice (Paddy)": [ { days: 15, msg: "Seedling: Apply Zinc Sulfate." }, { days: 30, msg: "Tillering: Top dress with Urea." } ],
-    "Cotton": [ { days: 45, msg: "Square Formation: Magnesium Sulfate + NPK 19:19:19." } ],
+    "Cotton": [ { days: 45, msg: "Square Formation: Magnesium Sulfate + NPK 19:19:19." }, { days: 70, msg: "Flowering: Spray Boron." } ],
     "General": [ { days: 0, msg: "Basal Dose: Ensure DAP/SSP is applied." } ]
 };
 
@@ -87,6 +87,8 @@ function submitRegistration() {
     const name = document.getElementById("fname").value;
     const state = document.getElementById("state-select").value;
     const v = document.getElementById("village-select").value;
+    
+    // Save Crops
     const cropSelects = document.querySelectorAll(".crop-name");
     let myCrops = [];
     cropSelects.forEach(s => { if(s.value) myCrops.push(s.value); });
@@ -143,7 +145,7 @@ async function fetchWeather(lat, lon) {
 }
 function getRealWeather() { navigator.geolocation.getCurrentPosition((p) => fetchWeather(p.coords.latitude, p.coords.longitude)); }
 
-// --- 6. SATYA SCAN & EXPIRY LOGIC ---
+// --- 6. SATYA SCAN & EXPIRY LOGIC (FIXED) ---
 function openScanner() {
     goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
@@ -170,7 +172,7 @@ async function startScanner() {
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
     html5QrcodeScanner = new Html5Qrcode("reader");
     
-    // Standard Config
+    // Standard Config for QR and Barcode
     const config = { fps: 10, qrbox: 250 };
     
     try { await html5QrcodeScanner.start({ facingMode: "environment" }, config, (t) => { handleScanSuccess(t); }, (e) => {}); }
@@ -198,11 +200,14 @@ function showResultScreen(content, type) {
     setTimeout(() => {
         let data = (type === "CODE") ? PRODUCT_DB[content] : null;
 
+        // If not found in DB but it's a valid code, show unknown
         if (data) {
+            // Expiry Check
             let isExpired = false;
             if (data.expiry && data.expiry !== "N/A") {
                 const expDate = new Date(data.expiry);
                 const today = new Date();
+                // Reset times to compare dates only
                 today.setHours(0,0,0,0);
                 if (today > expDate) isExpired = true;
             }
@@ -220,6 +225,7 @@ function showResultScreen(content, type) {
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
+            // Check if it's a Text Scan result
             if(type === "TEXT") {
                 resBox.className = "result-large safe";
                 resBox.innerHTML = `<h2 style="margin:0">✅ TEXT DETECTED</h2><h4>Found: ${content}</h4><p>This keyword indicates a valid agricultural product type.</p>`;
@@ -244,7 +250,7 @@ async function captureAndReadText() {
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
     
-    stopScanner(); 
+    stopScanner(); // Pause camera
     statusDiv.innerText = "🧠 Analyzing Text...";
     
     try {
@@ -256,7 +262,7 @@ async function captureAndReadText() {
         if (keyword) showResultScreen(keyword, "TEXT");
         else {
             alert("No agricultural keywords found.");
-            openScanner();
+            openScanner(); // Restart
         }
     } catch(e) { alert("OCR Error"); openScanner(); }
 }
@@ -355,7 +361,7 @@ function startVoiceInput() {
     r.onresult = (e) => { 
         document.getElementById("advice-query").value = e.results[0][0].transcript; 
         btn.classList.remove("mic-listening");
-        sendChat();
+        sendChat(); // Auto send
     };
     r.onend = () => btn.classList.remove("mic-listening");
     r.start();
@@ -367,11 +373,11 @@ function openMandi() {
     document.getElementById("mandi-interface").style.display = "block";
     const container = document.getElementById("mandi-table-container");
     const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
-    let html = `<table style="width:100%; border-collapse: collapse;"><tr><th style="text-align:left;">Crop</th><th style="text-align:left;">Price</th><th>Trend</th></tr>`;
+    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price</th><th>Trend</th></tr>`;
     rates.forEach(item => {
         const arrow = item.trend === "up" ? "▲" : "▼";
-        const color = item.trend === "up" ? "green" : "red";
-        html += `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${item.crop}</td><td style="padding:10px; border-bottom:1px solid #eee;">${item.price}</td><td style="color:${color}; font-weight:bold;">${arrow}</td></tr>`;
+        const colorClass = item.trend === "up" ? "price-up" : "price-down";
+        html += `<tr><td>${item.crop}</td><td>${item.price}</td><td class="${colorClass}">${arrow}</td></tr>`;
     });
     html += `</table>`;
     container.innerHTML = html;
