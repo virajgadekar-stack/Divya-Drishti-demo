@@ -3,6 +3,7 @@
     --primary: #2e7d32;
     --gold: #ffb300;
     --bg: #f1f8e9;
+    --danger: #d32f2f; /* Red for Logout */
 }
 
 body {
@@ -76,6 +77,15 @@ input:focus, select:focus { border-color: var(--primary); outline: none; }
     color: var(--primary); padding: 15px; border-radius: 30px;
     font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer;
 }
+
+/* NEW LOGOUT BUTTON STYLE */
+.btn-logout {
+    background: transparent; border: 2px solid var(--danger);
+    color: var(--danger); padding: 10px; border-radius: 30px;
+    font-size: 14px; font-weight: bold; width: 100%; margin-top: 30px; 
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-logout:hover { background: #ffebee; }
 
 .back-btn {
     background: #ddd; border: none; color: #333;
