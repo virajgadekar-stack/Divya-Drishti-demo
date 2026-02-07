@@ -2,215 +2,210 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Divya Drishti | Smart Farmer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divya Drishti | Smart Farmer App</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="success-msg">
-        <div class="success-icon">✓</div>
-        <h2>Success!</h2>
-        <p>Welcome to Divya Drishti</p>
+        <div class="shield-logo" style="transform: scale(1.5); margin-bottom: 20px;"></div>
+        <h2 style="margin:0;">REGISTRATION SUCCESSFUL!</h2>
+        <p>Redirecting to Dashboard...</p>
     </div>
 
-    <div class="app-container">
+    <div class="container">
         
-        <header id="main-header">
-            <div class="header-content">
-                <div class="logo-circle">👁️</div>
-                <div class="header-text">
-                    <h1>Divya Drishti</h1>
-                    <span>Smart Farming Assistant</span>
+        <div id="login-screen" class="card">
+            <div style="text-align:center; margin-bottom:20px;">
+                <div class="shield-logo"></div>
+                <h2 style="color:#2e7d32;">Divya Drishti</h2>
+            </div>
+            <h3 style="margin-top:0; text-align:center;">Farmer Registration</h3>
+            
+            <div class="input-group">
+                <label>Full Name</label>
+                <div class="valid-wrap">
+                    <input type="text" id="fname" placeholder="Enter Farmer Name" oninput="validateField(this, 'text')">
+                    <span class="tick-mark">✔</span>
                 </div>
             </div>
-            <button class="logout-btn-mini" onclick="logoutUser()">⏻</button>
-        </header>
 
-        <div id="login-screen" class="screen active-screen">
-            <div class="login-card">
-                <div class="logo-large">👁️</div>
-                <h3>Kisan Registration</h3>
-                <p>Join the smart revolution</p>
-                
-                <div class="input-group">
-                    <input type="text" id="fname" placeholder="Full Name">
-                </div>
-                <div class="input-group">
-                    <select id="state-select" onchange="loadDistricts()">
-                        <option value="">Select State</option>
+            <div class="input-group">
+                <label>State</label>
+                <div class="valid-wrap">
+                    <select id="state-select" onchange="loadDistricts(); validateField(this, 'select')">
+                        <option value="">-- Select State --</option>
                     </select>
+                    <span class="tick-mark">✔</span>
                 </div>
-                <div class="input-group">
-                    <select id="district-select" onchange="loadVillages()" disabled>
-                        <option value="">Select District</option>
+            </div>
+
+            <div class="input-group">
+                <label>District</label>
+                <div class="valid-wrap">
+                    <select id="district-select" onchange="loadVillages(); validateField(this, 'select')" disabled>
+                        <option value="">-- Select District --</option>
                     </select>
+                    <span class="tick-mark">✔</span>
                 </div>
-                <div class="input-group">
-                    <select id="village-select" disabled>
-                        <option value="">Select Village</option>
+            </div>
+
+            <div class="input-group">
+                <label>Village / Town</label>
+                <div class="valid-wrap">
+                    <select id="village-select" onchange="validateField(this, 'select')" disabled>
+                        <option value="">-- Select Village --</option>
                     </select>
+                    <span class="tick-mark">✔</span>
                 </div>
-                
-                <div class="divider"><span>Crops</span></div>
+            </div>
 
-                <div class="input-group">
-                    <select id="crop-count" onchange="generateCropFields()">
-                        <option value="">Number of Crops</option>
-                        <option value="1">1</option> <option value="2">2</option> <option value="3">3</option>
+            <div class="input-group">
+                <label>Number of Crops (1-10)</label>
+                <div class="valid-wrap">
+                    <select id="crop-count" onchange="generateCropFields(); validateField(this, 'select')">
+                        <option value="">-- Select --</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
                     </select>
+                    <span class="tick-mark">✔</span>
                 </div>
-                <div id="dynamic-crop-area"></div>
-
-                <button class="btn-main" onclick="submitRegistration()">Get Started</button>
             </div>
+
+            <div id="dynamic-crop-area"></div>
+
+            <button class="btn-primary" onclick="submitRegistration()">REGISTER & LOGIN</button>
         </div>
 
-        <div id="dashboard-screen" class="screen">
-            
-            <div class="weather-widget" onclick="getRealWeather()">
-                <div class="weather-icon">⛅</div>
-                <div class="weather-info">
-                    <h2 id="weather-temp">--°C</h2>
-                    <p id="weather-desc">Tap to update</p>
-                    <span id="location-text" style="font-size:11px; opacity:0.8;">📍 Locating...</span>
-                </div>
+        <div id="dashboard-screen">
+            <div class="header-row">
+                <div class="shield-logo" style="width:40px; height:45px; font-size:20px;"></div>
+                <h2 style="color:#2e7d32; margin:0;">Divya Drishti</h2>
             </div>
 
-            <h3 class="section-title">Quick Actions</h3>
-            
-            <div class="grid-menu">
-                <div class="menu-item" onclick="openScanner()">
-                    <div class="icon-box" style="background: linear-gradient(135deg, #FF6B6B, #EE5253);">📷</div>
-                    <span>Satya Scan</span>
-                </div>
-                <div class="menu-item" onclick="openAdvisor()">
-                    <div class="icon-box" style="background: linear-gradient(135deg, #48DBFB, #0ABDE3);">🤖</div>
-                    <span>Agri Gyani</span>
-                </div>
-                <div class="menu-item" onclick="openMandi()">
-                    <div class="icon-box" style="background: linear-gradient(135deg, #Feca57, #ff9f43);">💰</div>
-                    <span>Mandi Bhav</span>
-                </div>
-                <div class="menu-item" onclick="openPoshan()">
-                    <div class="icon-box" style="background: linear-gradient(135deg, #1dd1a1, #10ac84);">🌱</div>
-                    <span>Poshan</span>
-                </div>
-            </div>
-
-            <div class="daily-tip-card">
-                <h4>💡 Daily Tip</h4>
-                <p>Check for yellow rust in Wheat this week. Irrigating in the evening saves 30% water.</p>
-            </div>
-        </div>
-
-        <div id="scan-interface" class="screen">
-            <div class="screen-header">
-                <button class="back-btn" onclick="goHome()">❮</button>
-                <h3>Satya Scan</h3>
-            </div>
-            
-            <div class="scanner-container">
-                <div id="reader"></div>
-                <div class="scan-overlay">
-                    <div class="scan-line"></div>
-                    <div class="corner tl"></div><div class="corner tr"></div>
-                    <div class="corner bl"></div><div class="corner br"></div>
-                </div>
-            </div>
-            
-            <div class="scanner-controls">
-                <p>Point camera at QR / Barcode</p>
-                <div class="btn-row">
-                    <button class="btn-icon" onclick="startScanner()">📷 <br>Start</button>
-                    <button class="btn-icon" onclick="captureAndReadText()">📝 <br>OCR</button>
-                </div>
-                <div id="scan-timer">02:00</div>
-            </div>
-        </div>
-
-        <div id="scan-result-screen" class="screen">
-            <div class="result-card" id="res-card-bg">
-                <div id="res-icon" class="result-icon">🔍</div>
-                <h2 id="res-status">Analyzing...</h2>
-                <h4 id="res-name">Please wait</h4>
-                <p id="res-msg">Verifying product details from database...</p>
-                <div class="result-details">
-                    <span>Expiry: <b id="res-exp">--</b></span>
-                </div>
-                <button class="btn-main" onclick="exitScanResult()">Scan Another</button>
-            </div>
-        </div>
-
-        <div id="poshan-interface" class="screen">
-            <div class="screen-header">
-                <button class="back-btn" onclick="goHome()">❮</button>
-                <h3>Poshan Tracker</h3>
-            </div>
-            
-            <div class="tab-container">
-                <button class="tab active" onclick="switchPoshanTab('log')">Logbook</button>
-                <button class="tab" onclick="switchPoshanTab('advisory')">Advisory</button>
-            </div>
-
-            <div id="tab-log" class="tab-content active-content">
-                <div class="add-log-box">
-                    <input type="text" id="log-item-name" placeholder="Item Name (e.g. Urea)">
-                    <input type="date" id="log-item-date">
-                    <button class="btn-mini" onclick="addToLog()">+ Add</button>
-                </div>
-                <div class="log-history">
-                    <ul id="log-list">
-                        </ul>
-                </div>
-            </div>
-
-            <div id="tab-advisory" class="tab-content">
-                <div class="advice-form">
-                    <label>Select Crop</label>
-                    <select id="advisory-crop-select"></select>
-                    <label>Crop Age (Days)</label>
-                    <input type="number" id="crop-age-days" placeholder="e.g. 30">
-                    <button class="btn-main" onclick="getFertilizerAdvice()">Get Advice</button>
-                </div>
-                <div id="advisory-output" class="advice-result-box"></div>
-            </div>
-        </div>
-
-        <div id="advisor-interface" class="screen full-height">
-            <div class="chat-header">
-                <button class="back-btn-white" onclick="goHome()">❮</button>
-                <div class="bot-info">
-                    <div class="bot-avatar">👳🏽‍♂️</div>
+            <div class="card weather-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <h3>Agri Gyani</h3>
-                        <span>Online</span>
+                        <h3 id="welcome-text" style="color:white; margin:0;">Welcome!</h3>
+                        <p id="location-text" style="margin:5px 0 0; opacity:0.9; font-size:13px;">Location: Unknown</p>
+                    </div>
+                    <div style="text-align:right; cursor: pointer;" onclick="getRealWeather()">
+                        <div id="weather-temp" style="font-size: 28px; font-weight:bold;">--°C</div>
+                        <div id="weather-desc" style="font-size: 12px;">Tap to Load</div>
                     </div>
                 </div>
             </div>
-            
-            <div id="chat-history" class="chat-area">
-                <div class="msg bot">
-                    <div class="bubble">Namaste! I am your AI farming assistant. Ask me about weather, diseases, or prices.</div>
+
+            <h3 style="text-align: center; margin-bottom: 10px;">Services</h3>
+            <div class="dashboard-grid">
+                <div class="flashy-icon" onclick="openScanner()">
+                    <span class="icon-symbol">📷</span>
+                    <div class="icon-title">SATYA SCAN</div>
+                </div>
+                <div class="flashy-icon" onclick="openAdvisor()">
+                    <span class="icon-symbol">🌾</span>
+                    <div class="icon-title">AGRI GYANI</div>
+                </div>
+                <div class="flashy-icon" onclick="openMandi()">
+                    <span class="icon-symbol">💰</span>
+                    <div class="icon-title">MANDI RATES</div>
+                </div>
+                <div class="flashy-icon" onclick="openPoshan()">
+                    <span class="icon-symbol">🧪</span>
+                    <div class="icon-title">POSHAN TRACKER</div>
                 </div>
             </div>
 
-            <div class="chat-input-bar">
-                <button class="voice-btn" id="mic-btn" onclick="startVoiceInput()">🎤</button>
-                <input type="text" id="advice-query" placeholder="Ask a question..." onkeypress="handleChatEnter(event)">
+            <button class="btn-logout" onclick="logoutUser()">🚪 Logout</button>
+        </div>
+
+        <div id="scan-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>📷 Satya Scan</h3>
+                    <span id="scan-timer" style="color:red; font-weight:bold; font-size:14px; visibility: hidden;">02:00</span>
+                </div>
+                
+                <div id="reader" style="width:100%; min-height: 250px; background: #000;"></div>
+                
+                <div id="scanner-controls" style="margin-top:15px; display:none;">
+                    <p style="font-size:12px; text-align:center; color:#666;">Align Code within the box.</p>
+                    <button class="btn-outline" id="snap-text-btn" onclick="captureAndReadText()">📝 Read Text (OCR)</button>
+                </div>
+
+                <button class="btn-primary" id="scan-btn" onclick="startScanner()">START CAMERA</button>
+                <div id="ocr-status" style="text-align:center; font-size:12px; color:blue; margin-top:5px;"></div>
+            </div>
+        </div>
+
+        <div id="scan-result-screen">
+            <div class="card">
+                <h3 style="text-align: center;">Scan Results</h3>
+                <div id="res-code-top" class="scan-code-display">Pending...</div>
+                <div id="res-box-large" class="result-large">Verifying...</div>
+                <button class="btn-outline" onclick="exitScanResult()">DONE / SCAN NEXT</button>
+            </div>
+        </div>
+
+        <div id="poshan-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button id="btn-log-tab" class="tab-btn active-tab" onclick="switchPoshanTab('log')">📝 Khad Bahi</button>
+                <button id="btn-adv-tab" class="tab-btn" onclick="switchPoshanTab('advisory')">📅 Fasal Salah</button>
+            </div>
+
+            <div id="tab-log" class="card">
+                <h3>🧪 Fertilizer Log</h3>
+                <div class="input-group">
+                    <input type="text" id="log-item-name" placeholder="Fertilizer Name (e.g. Urea)">
+                    <input type="date" id="log-item-date">
+                    <button class="btn-primary" style="margin-top:10px; padding:10px;" onclick="addToLog()">Add to Log</button>
+                </div>
+                <ul id="log-list" class="log-list"><li class="empty-msg">No records yet.</li></ul>
+            </div>
+
+            <div id="tab-advisory" class="card" style="display:none;">
+                <h3>📅 Stage-wise Advisory</h3>
+                <label>Select Your Crop</label>
+                <select id="advisory-crop-select"></select>
+                <label>Days Since Sowing</label>
+                <input type="number" id="crop-age-days" placeholder="e.g. 25">
+                <button class="btn-primary" onclick="getFertilizerAdvice()">GET RECOMMENDATION</button>
+                <div id="advisory-output" class="advisory-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <div id="advisor-interface" style="height: 100vh; display: none; flex-direction: column; background:#f0f2f5;">
+            <div style="padding: 15px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display:flex; align-items:center;">
+                <button class="back-btn" onclick="goHome()" style="margin:0; margin-right:10px;">←</button>
+                <span style="font-weight:bold; font-size: 18px; color:#2e7d32;">🌾 Agri-Gyani</span>
+            </div>
+            
+            <div id="chat-history" class="chat-history">
+                <div class="chat-msg bot-msg">
+                    Namaste! I am Agri-Gyani. Ask me about crop diseases, weather, or mandi prices.
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <button id="mic-btn" class="mic-btn-small" onclick="startVoiceInput()">🎤</button>
+                <input type="text" id="advice-query" placeholder="Type your question..." onkeypress="handleChatEnter(event)">
                 <button class="send-btn" onclick="sendChat()">➤</button>
             </div>
         </div>
 
-        <div id="mandi-interface" class="screen">
-            <div class="screen-header">
-                <button class="back-btn" onclick="goHome()">❮</button>
-                <h3>Mandi Rates</h3>
-            </div>
-            <div class="mandi-card">
+        <div id="mandi-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            <div class="card">
+                <h3>💰 Mandi Bhav (Today)</h3>
                 <div id="mandi-table-container">Loading...</div>
             </div>
         </div>
