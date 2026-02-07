@@ -119,6 +119,10 @@
                     <span class="icon-symbol">💰</span>
                     <div class="icon-title">MANDI RATES</div>
                 </div>
+                <div class="flashy-icon" onclick="openPoshan()">
+                    <span class="icon-symbol">🧪</span>
+                    <div class="icon-title">POSHAN TRACKER</div>
+                </div>
             </div>
 
             <button class="btn-logout" onclick="logoutUser()">🚪 Logout</button>
@@ -131,14 +135,11 @@
                     <h3>📷 Satya Scan</h3>
                     <span id="scan-timer" style="color:red; font-weight:bold; font-size:14px; visibility: hidden;">02:00</span>
                 </div>
-                
                 <div id="reader" style="width:100%;"></div>
-                
                 <div id="scanner-controls" style="margin-top:15px; display:none;">
                     <p style="font-size:12px; text-align:center; color:#666;">Point camera at QR, Barcode, or Text.</p>
                     <button class="btn-outline" id="snap-text-btn" onclick="captureAndReadText()">📝 Scan Text (OCR)</button>
                 </div>
-
                 <button class="btn-primary" id="scan-btn" onclick="startScanner()">START CAMERA</button>
                 <div id="ocr-status" style="text-align:center; font-size:12px; color:blue; margin-top:5px;"></div>
             </div>
@@ -154,17 +155,56 @@
             </div>
         </div>
 
+        <div id="poshan-interface">
+            <button class="back-btn" onclick="goHome()">← Back to Home</button>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button class="tab-btn active-tab" onclick="switchPoshanTab('log')">📝 Khad Bahi (Log)</button>
+                <button class="tab-btn" onclick="switchPoshanTab('advisory')">📅 Fasal Salah (Advisory)</button>
+            </div>
+
+            <div id="tab-log" class="card">
+                <h3>🧪 Fertilizer Log</h3>
+                <p style="font-size:12px; color:#666;">Track what you apply to your fields.</p>
+                
+                <div class="input-group">
+                    <input type="text" id="log-item-name" placeholder="Fertilizer Name (e.g. Urea)">
+                    <input type="date" id="log-item-date">
+                    <button class="btn-primary" style="margin-top:10px; padding:10px;" onclick="addToLog()">Add to Log</button>
+                </div>
+
+                <ul id="log-list" class="log-list">
+                    <li class="empty-msg">No records yet.</li>
+                </ul>
+            </div>
+
+            <div id="tab-advisory" class="card" style="display:none;">
+                <h3>📅 Stage-wise Advisory</h3>
+                <p style="font-size:12px; color:#666;">Get recommendations based on crop age.</p>
+
+                <label>Select Your Crop</label>
+                <select id="advisory-crop-select">
+                    </select>
+
+                <label>Days Since Sowing</label>
+                <input type="number" id="crop-age-days" placeholder="e.g. 25">
+
+                <button class="btn-primary" onclick="getFertilizerAdvice()">GET RECOMMENDATION</button>
+
+                <div id="advisory-output" class="advisory-box" style="display:none;"></div>
+            </div>
+        </div>
+
         <div id="advisor-interface">
             <button class="back-btn" onclick="goHome()">← Back to Home</button>
             <div class="card">
                 <h3>🌾 Agri-Gyani Advisor</h3>
-                <p style="font-size:13px; color:#666;">Ask me about crop diseases, market prices, or weather.</p>
                 <div class="voice-search-container">
                     <input type="text" id="advice-query" placeholder="Type or use Mic...">
                     <button id="mic-btn" class="mic-btn" onclick="startVoiceInput()">🎤</button>
                 </div>
                 <button class="btn-primary" onclick="getAdvice()">GET ADVICE</button>
-                <div id="advice-result" style="margin-top:15px; font-weight:500; white-space: pre-line;"></div>
+                <div id="advice-result" style="margin-top:15px;"></div>
             </div>
         </div>
 
@@ -172,11 +212,7 @@
             <button class="back-btn" onclick="goHome()">← Back to Home</button>
             <div class="card">
                 <h3>💰 Mandi Bhav (Today)</h3>
-                <p style="font-size:12px; color:#666;">Latest APMC rates for your region.</p>
-                <div id="mandi-table-container">
-                    Loading rates...
-                </div>
-                <p style="font-size:10px; color:#999; margin-top:10px;">*Rates are subject to market fluctuations.</p>
+                <div id="mandi-table-container">Loading...</div>
             </div>
         </div>
 
