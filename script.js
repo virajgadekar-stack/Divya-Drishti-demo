@@ -1,8 +1,13 @@
-// --- 1. LOCAL DATABASE SIMULATION ---
+// --- 1. CONFIGURATION & DATA ---
 const PRODUCT_DB = {
     "DATA-TRUST-101": { status: "SAFE", name: "Mahyco Cotton Seeds (Bt)", message: "✅ GENUINE. Batch #MH-2025 verified.", expiry: "Dec 2025" },
-    "FAKE-PESTICIDE-99": { status: "FAKE", name: "Counterfeit / Unknown", message: "❌ WARNING: Fake Product Detected!", expiry: "N/A" }
+    "FAKE-PESTICIDE-99": { status: "FAKE", name: "Counterfeit / Unknown", message: "❌ WARNING: Fake Product Detected!", expiry: "N/A" },
+    "1234567890128": { status: "SAFE", name: "Generic Urea Bag (50kg)", message: "✅ Verified IFFCO Standard.", expiry: "Mar 2026" } // Example Barcode
 };
+
+const KEYWORDS_DB = ["UREA", "DAP", "ZINC", "NPK", "COTTON", "PESTICIDE", "SEED", "IFFCO", "MAHYCO"];
+
+const CROP_LIST = ["Wheat", "Rice (Paddy)", "Cotton", "Sugarcane", "Maize", "Soybean", "Groundnut", "Mustard", "Turmeric", "Tomato", "Potato", "Onion"];
 
 const LOCATION_DATA = {
     "Maharashtra": { "Pune": ["Haveli", "Baramati"], "Nashik": ["Malegaon", "Sinnar"] },
@@ -10,35 +15,24 @@ const LOCATION_DATA = {
     "Punjab": { "Ludhiana": ["Khanna", "Jagraon"], "Amritsar": ["Ajnala", "Baba Bakala"] }
 };
 
-// Simulated Mandi Data
 const MANDI_DATA = {
-    "Maharashtra": [
-        { crop: "Onion", price: "₹2,400/q", trend: "up" },
-        { crop: "Cotton", price: "₹7,800/q", trend: "down" },
-        { crop: "Soybean", price: "₹4,600/q", trend: "up" }
-    ],
-    "Gujarat": [
-        { crop: "Groundnut", price: "₹6,200/q", trend: "up" },
-        { crop: "Cotton", price: "₹7,900/q", trend: "up" },
-        { crop: "Jeera", price: "₹25,000/q", trend: "down" }
-    ],
-    "Punjab": [
-        { crop: "Wheat", price: "₹2,275/q", trend: "up" },
-        { crop: "Paddy", price: "₹2,203/q", trend: "up" },
-        { crop: "Maize", price: "₹2,090/q", trend: "down" }
-    ]
+    "Maharashtra": [ { crop: "Onion", price: "₹2,400/q", trend: "up" }, { crop: "Cotton", price: "₹7,800/q", trend: "down" } ],
+    "Gujarat": [ { crop: "Groundnut", price: "₹6,200/q", trend: "up" }, { crop: "Cotton", price: "₹7,900/q", trend: "up" } ],
+    "Punjab": [ { crop: "Wheat", price: "₹2,275/q", trend: "up" }, { crop: "Paddy", price: "₹2,203/q", trend: "up" } ]
 };
 
-// --- 2. INITIALIZATION ---
-let currentUserState = "Maharashtra"; // Default
+let currentUserState = "Maharashtra";
+let html5QrcodeScanner = null;
+let scanTimeout = null;
+let isScanningText = false;
 
+// --- 2. INITIALIZATION ---
 window.onload = function() {
     const savedUser = localStorage.getItem("farmerUser");
     if (savedUser) {
         const user = JSON.parse(savedUser);
         loginUser(user.name, user.village, user.state);
     }
-
     const stateSelect = document.getElementById("state-select");
     if(stateSelect) {
         for (let state in LOCATION_DATA) {
@@ -48,17 +42,38 @@ window.onload = function() {
     }
 };
 
-// --- 3. REGISTRATION LOGIC ---
+// --- 3. VALIDATION LOGIC ---
+function validateField(input, type) {
+    let isValid = false;
+    const val = input.value;
+    
+    if (type === 'text' && val.trim().length > 2) isValid = true;
+    if (type === 'select' && val !== "") isValid = true;
+    if (type === 'number') {
+        if (val !== "" && !isNaN(val) && Number(val) > 0) isValid = true;
+    }
+
+    if (isValid) {
+        input.classList.add("input-valid");
+    } else {
+        input.classList.remove("input-valid");
+    }
+}
+
+// --- 4. REGISTRATION ---
 function loadDistricts() {
     const s = document.getElementById("state-select").value;
     const dSel = document.getElementById("district-select");
     const vSel = document.getElementById("village-select");
-    dSel.innerHTML = '<option value="">-- Select District --</option>'; vSel.innerHTML = '<option value="">-- Select Village --</option>';
-    vSel.disabled = true;
+    
+    dSel.innerHTML = '<option value="">-- Select District --</option>'; 
+    vSel.innerHTML = '<option value="">-- Select Village --</option>';
+    vSel.disabled = true; dSel.disabled = true; dSel.classList.remove("input-valid"); vSel.classList.remove("input-valid");
+
     if (s && LOCATION_DATA[s]) {
         dSel.disabled = false;
         for (let d in LOCATION_DATA[s]) { let opt = document.createElement("option"); opt.value = d; opt.text = d; dSel.appendChild(opt); }
-    } else { dSel.disabled = true; }
+    }
 }
 
 function loadVillages() {
@@ -66,28 +81,60 @@ function loadVillages() {
     const d = document.getElementById("district-select").value;
     const vSel = document.getElementById("village-select");
     vSel.innerHTML = '<option value="">-- Select Village --</option>';
+    vSel.disabled = true; vSel.classList.remove("input-valid");
+    
     if (s && d && LOCATION_DATA[s][d]) {
         vSel.disabled = false;
         LOCATION_DATA[s][d].forEach(v => { let opt = document.createElement("option"); opt.value = v; opt.text = v; vSel.appendChild(opt); });
-    } else { vSel.disabled = true; }
+    }
 }
 
 function generateCropFields() {
-    const c = document.getElementById("crop-count").value;
-    const con = document.getElementById("dynamic-crop-area"); con.innerHTML = "";
-    if (c > 0 && c <= 10) {
-        for (let i = 1; i <= c; i++) {
-            con.innerHTML += `<div class="crop-row"><div style="flex:2"><label style="margin:0;font-size:10px">Crop ${i}</label><input class="crop-name"></div><div style="flex:1"><label style="margin:0;font-size:10px">Acres</label><input type="number" class="crop-area"></div></div>`;
+    const count = document.getElementById("crop-count").value;
+    const container = document.getElementById("dynamic-crop-area"); 
+    container.innerHTML = "";
+    
+    if (count > 0 && count <= 10) {
+        let cropOptions = '<option value="">Select Crop</option>';
+        CROP_LIST.forEach(c => { cropOptions += `<option value="${c}">${c}</option>`; });
+
+        for (let i = 1; i <= count; i++) {
+            container.innerHTML += `
+            <div class="crop-row">
+                <div style="flex:2">
+                    <label style="margin:0;font-size:10px">Crop ${i}</label>
+                    <div class="valid-wrap">
+                        <select class="crop-name" onchange="validateField(this, 'select')">${cropOptions}</select>
+                        <span class="tick-mark">✔</span>
+                    </div>
+                </div>
+                <div style="flex:1">
+                    <label style="margin:0;font-size:10px">Acres</label>
+                    <div class="valid-wrap">
+                        <input type="number" class="crop-area" min="0.1" step="0.1" placeholder="0.0" oninput="validateField(this, 'number')">
+                        <span class="tick-mark">✔</span>
+                    </div>
+                </div>
+            </div>`;
         }
     }
 }
 
 function submitRegistration() {
+    const inputs = document.querySelectorAll("#login-screen input, #login-screen select");
+    let allValid = true;
+    
+    // Simple check if all required fields have value
+    inputs.forEach(i => {
+        if (!i.disabled && i.value === "") allValid = false;
+        if (i.type === "number" && i.value <= 0) allValid = false;
+    });
+
+    if (!allValid) { alert("Please fill all fields correctly (look for green ticks)."); return; }
+
     const name = document.getElementById("fname").value;
     const state = document.getElementById("state-select").value;
     const v = document.getElementById("village-select").value;
-    
-    if (!name || !v || !state) { alert("Please fill all details!"); return; }
 
     const userData = { name: name, village: v, state: state };
     localStorage.setItem("farmerUser", JSON.stringify(userData));
@@ -105,197 +152,187 @@ function loginUser(name, village, state) {
     document.getElementById("dashboard-screen").style.display = "block";
     document.getElementById("welcome-text").innerText = `Namaste, ${name} ji!`;
     document.getElementById("location-text").innerText = `📍 ${village}, ${state || ""}`;
-    
-    // FETCH WEATHER FOR REGISTERED LOCATION
     getWeatherForLocation(village, state);
 }
 
-// --- REAL WEATHER API LOGIC (OPEN-METEO + GEOCODING) ---
-
-// 1. Convert "Village, State" to Lat/Lon
+// --- 5. WEATHER LOGIC (Same as before) ---
 async function getWeatherForLocation(village, state) {
-    const tempDiv = document.getElementById("weather-temp");
     const descDiv = document.getElementById("weather-desc");
-    
-    tempDiv.innerHTML = "--";
     descDiv.innerHTML = "Fetching Location...";
-
     try {
-        // Search for the location name
         const searchQuery = `${village}, ${state}, India`;
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1&format=json`;
-        
         const geoRes = await fetch(geoUrl);
         const geoData = await geoRes.json();
-
         if (geoData.results && geoData.results.length > 0) {
-            const lat = geoData.results[0].latitude;
-            const lon = geoData.results[0].longitude;
-            
-            descDiv.innerHTML = "Loading Weather...";
-            fetchWeather(lat, lon);
+            fetchWeather(geoData.results[0].latitude, geoData.results[0].longitude);
         } else {
-            // Fallback: If village not found, try just the State
-            console.log("Village not found, trying state...");
-            const stateUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state)}&count=1&format=json`;
-            const stateRes = await fetch(stateUrl);
-            const stateData = await stateRes.json();
-            
-            if (stateData.results && stateData.results.length > 0) {
-                 fetchWeather(stateData.results[0].latitude, stateData.results[0].longitude);
-            } else {
-                 descDiv.innerHTML = "Location Not Found";
-            }
+            descDiv.innerHTML = "Weather Unavail.";
         }
-    } catch (error) {
-        console.error(error);
-        descDiv.innerHTML = "Connection Error";
-    }
+    } catch (e) { descDiv.innerHTML = "Offline"; }
 }
 
-// 2. Get Weather using Lat/Lon (Same as before)
 async function fetchWeather(lat, lon) {
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.current_weather) {
-            const t = data.current_weather.temperature;
-            const code = data.current_weather.weathercode;
-            
-            document.getElementById("weather-temp").innerText = `${t}°C`;
-            document.getElementById("weather-desc").innerText = getWeatherDescription(code);
+        const r = await fetch(url);
+        const d = await r.json();
+        if (d.current_weather) {
+            document.getElementById("weather-temp").innerText = `${d.current_weather.temperature}°C`;
+            document.getElementById("weather-desc").innerText = "Updated just now";
         }
-    } catch (err) {
-        document.getElementById("weather-desc").innerText = "Network Error";
-    }
+    } catch (e) {}
 }
+function getRealWeather() { navigator.geolocation.getCurrentPosition((p) => fetchWeather(p.coords.latitude, p.coords.longitude)); }
 
-function getWeatherDescription(code) {
-    // WMO Weather interpretation codes
-    if (code === 0) return "☀️ Clear Sky";
-    if (code === 1 || code === 2 || code === 3) return "⛅ Partly Cloudy";
-    if (code >= 45 && code <= 48) return "🌫️ Foggy";
-    if (code >= 51 && code <= 55) return "🌧️ Drizzle";
-    if (code >= 61 && code <= 67) return "🌧️ Rain";
-    if (code >= 71 && code <= 77) return "❄️ Snow";
-    if (code >= 80 && code <= 82) return "🌦️ Showers";
-    if (code >= 95) return "⛈️ Thunderstorm";
-    return "Unknown";
-}
-
-// --- Manual Refresh Button (GPS Fallback) ---
-function getRealWeather() {
-    // If user clicks the refresh button, we try GPS as a fallback or update
-    if (navigator.geolocation) {
-         document.getElementById("weather-desc").innerText = "Using GPS...";
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                fetchWeather(position.coords.latitude, position.coords.longitude);
-            },
-            (error) => {
-                alert("GPS permission denied. Showing registered location weather.");
-            }
-        );
-    } else {
-        alert("GPS not supported.");
-    }
-}
-
-function logoutUser() {
-    localStorage.removeItem("farmerUser");
-    document.getElementById("dashboard-screen").style.display = "none";
-    document.getElementById("login-screen").style.display = "block";
-    document.getElementById("fname").value = "";
-    document.getElementById("state-select").value = "";
-    document.getElementById("district-select").innerHTML = '<option value="">-- Select District --</option>';
-    document.getElementById("district-select").disabled = true;
-    document.getElementById("village-select").innerHTML = '<option value="">-- Select Village --</option>';
-    document.getElementById("village-select").disabled = true;
-    document.getElementById("crop-count").value = "";
-    document.getElementById("dynamic-crop-area").innerHTML = "";
-}
-
-// --- 4. NAVIGATION ---
-let html5QrcodeScanner = null;
-
+// --- 6. NAVIGATION & LOGOUT ---
 async function goHome() {
-    if (html5QrcodeScanner) {
-        try { await html5QrcodeScanner.stop(); await html5QrcodeScanner.clear(); } catch(e){}
-        html5QrcodeScanner = null;
-    }
+    stopScanner();
     document.getElementById("scan-interface").style.display = "none";
     document.getElementById("advisor-interface").style.display = "none";
     document.getElementById("mandi-interface").style.display = "none";
     document.getElementById("dashboard-screen").style.display = "block";
 }
 
+function logoutUser() {
+    localStorage.removeItem("farmerUser");
+    location.reload(); // Simplest way to reset everything
+}
+
+// --- 7. SATYA SCAN LOGIC (Enhanced) ---
+
 function openScanner() {
     document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
     document.getElementById("scan-btn").style.display = "block";
+    document.getElementById("scanner-controls").style.display = "none";
+    document.getElementById("ocr-status").innerText = "";
 }
 
-function openAdvisor() {
-    document.getElementById("dashboard-screen").style.display = "none";
-    document.getElementById("advisor-interface").style.display = "block";
-}
-
-function openMandi() {
-    document.getElementById("dashboard-screen").style.display = "none";
-    document.getElementById("mandi-interface").style.display = "block";
-
-    const container = document.getElementById("mandi-table-container");
-    const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
-
-    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price (per Quintal)</th><th>Trend</th></tr>`;
-    rates.forEach(item => {
-        const arrow = item.trend === "up" ? "▲" : "▼";
-        const colorClass = item.trend === "up" ? "price-up" : "price-down";
-        html += `<tr>
-            <td>${item.crop}</td>
-            <td>${item.price}</td>
-            <td class="${colorClass}">${arrow}</td>
-        </tr>`;
-    });
-    html += `</table>`;
-    container.innerHTML = html;
-}
-
-// --- 5. SCANNER LOGIC ---
 async function startScanner() {
     document.getElementById('scan-btn').style.display = 'none';
+    document.getElementById('scanner-controls').style.display = 'block';
+    const timerDisplay = document.getElementById('scan-timer');
+    timerDisplay.style.visibility = 'visible';
+    timerDisplay.innerText = "02:00";
+
+    // 2-Minute Timer Logic
+    let timeLeft = 120;
+    if (scanTimeout) clearInterval(scanTimeout);
+    scanTimeout = setInterval(() => {
+        timeLeft--;
+        let min = Math.floor(timeLeft / 60);
+        let sec = timeLeft % 60;
+        timerDisplay.innerText = `0${min}:${sec < 10 ? '0' + sec : sec}`;
+        
+        if (timeLeft <= 0) {
+            stopScanner();
+            alert("⏰ Time Limit Exceeded! Could not detect code. Please try again.");
+        }
+    }, 1000);
+
+    // Initialize Scanner (Codes & Barcodes)
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
     html5QrcodeScanner = new Html5Qrcode("reader");
+    
+    const config = { fps: 10, qrbox: 250, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+    
     try {
         await html5QrcodeScanner.start(
             { facingMode: "environment" }, 
-            { fps: 10, qrbox: 250 },
+            config,
             (decodedText) => { handleScanSuccess(decodedText); },
-            (errorMessage) => { }
+            (errorMessage) => { /* ignore frames without code */ }
         );
     } catch (err) {
         alert("Camera Error: " + err);
-        document.getElementById('scan-btn').style.display = 'block';
+        stopScanner();
     }
 }
 
-async function handleScanSuccess(code) {
+function stopScanner() {
     if (html5QrcodeScanner) {
-        await html5QrcodeScanner.stop();
-        await html5QrcodeScanner.clear();
+        html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(e=>{});
         html5QrcodeScanner = null;
     }
+    if (scanTimeout) clearInterval(scanTimeout);
+    document.getElementById('scan-timer').style.visibility = 'hidden';
+    document.getElementById('scan-btn').style.display = 'block';
+    document.getElementById('scanner-controls').style.display = 'none';
+}
+
+function handleScanSuccess(code) {
+    stopScanner(); // Stop camera and timer
+    showResultScreen(code, "CODE");
+}
+
+// --- TEXT SCANNING (OCR) ---
+async function captureAndReadText() {
+    const statusDiv = document.getElementById("ocr-status");
+    statusDiv.innerText = "📸 Capturing & Analyzing Text...";
+    
+    // We need to grab the video element created by html5-qrcode
+    const video = document.querySelector("#reader video");
+    if (!video) { statusDiv.innerText = "Error: Camera not active"; return; }
+
+    // Create a canvas to draw the frame
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Stop scanner temporarily to save resources
+    stopScanner();
+    
+    statusDiv.innerText = "🧠 Reading Text (this takes a moment)...";
+
+    try {
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const upperText = text.toUpperCase();
+        console.log("OCR Result:", upperText);
+
+        // Check for keywords
+        const foundKeyword = KEYWORDS_DB.find(key => upperText.includes(key));
+        
+        if (foundKeyword) {
+            showResultScreen(foundKeyword, "TEXT");
+        } else {
+            alert(`No agricultural keywords found in text.\nDetected: "${text.substring(0, 20)}..."\nTry scanning a label with clear text like 'UREA' or 'DAP'.`);
+            document.getElementById("scan-btn").style.display = "block"; // Reset
+            statusDiv.innerText = "";
+        }
+    } catch (err) {
+        alert("OCR Error: " + err);
+        statusDiv.innerText = "";
+    }
+}
+
+// --- RESULT DISPLAY ---
+function showResultScreen(content, type) {
     document.getElementById("scan-interface").style.display = "none";
     document.getElementById("scan-result-screen").style.display = "block";
-    document.getElementById("res-code-top").innerText = code;
+    document.getElementById("res-code-top").innerText = content;
+    
     const resBox = document.getElementById("res-box-large");
     resBox.className = "result-large";
     resBox.innerHTML = "<h3>🔄 Verifying...</h3>";
-    
+
     setTimeout(() => {
-        const data = PRODUCT_DB[code];
+        let data = null;
+
+        if (type === "CODE") {
+            data = PRODUCT_DB[content];
+        } else if (type === "TEXT") {
+            // If it's text, we simulate a finding based on keyword
+            data = { 
+                status: "SAFE", 
+                name: `Verified Product (${content})`, 
+                message: `✅ Text Analysis confirmed keyword: ${content}`,
+                expiry: "Check package"
+            };
+        }
+
         if (data) {
             if (data.status === "SAFE") {
                 resBox.className = "result-large safe";
@@ -305,55 +342,53 @@ async function handleScanSuccess(code) {
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
+            // Product not found logic
             resBox.className = "result-large";
-            resBox.style.background = "#fff3cd"; 
-            resBox.style.border = "2px solid #ffc107";
-            resBox.style.color = "#856404";
-            resBox.innerHTML = `<h2 style="margin:0">⚠️ UNKNOWN</h2><p>Product code not found in database.</p>`;
+            resBox.style.background = "#eeeeee"; 
+            resBox.style.border = "2px solid #999";
+            resBox.style.color = "#555";
+            resBox.innerHTML = `<h2 style="margin:0">ℹ️ NO DATA</h2><p>Information for this product is not available in our database.</p>`;
         }
-    }, 800);
+    }, 1000);
 }
 
 function exitScanResult() {
     document.getElementById("scan-result-screen").style.display = "none";
-    openScanner(); 
+    openScanner();
 }
 
-// --- 6. ADVISOR & VOICE LOGIC ---
+function openMandi() {
+    document.getElementById("dashboard-screen").style.display = "none";
+    document.getElementById("mandi-interface").style.display = "block";
+    const container = document.getElementById("mandi-table-container");
+    const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
+    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price</th><th>Trend</th></tr>`;
+    rates.forEach(item => {
+        const arrow = item.trend === "up" ? "▲" : "▼";
+        const colorClass = item.trend === "up" ? "price-up" : "price-down";
+        html += `<tr><td>${item.crop}</td><td>${item.price}</td><td class="${colorClass}">${arrow}</td></tr>`;
+    });
+    html += `</table>`;
+    container.innerHTML = html;
+}
+function openAdvisor() {
+    document.getElementById("dashboard-screen").style.display = "none";
+    document.getElementById("advisor-interface").style.display = "block";
+}
 function startVoiceInput() {
-    if (!('webkitSpeechRecognition' in window)) { alert("Voice not supported in this browser. Try Chrome."); return; }
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-US'; 
-    recognition.continuous = false;
-    const micBtn = document.getElementById("mic-btn");
-    micBtn.classList.add("mic-listening");
-    recognition.onstart = function() { document.getElementById("advice-query").placeholder = "Listening..."; };
-    recognition.onresult = function(event) {
-        const txt = event.results[0][0].transcript;
-        document.getElementById("advice-query").value = txt;
-        micBtn.classList.remove("mic-listening");
-        getAdvice();
-    };
-    recognition.onerror = function() { micBtn.classList.remove("mic-listening"); };
-    recognition.onend = function() { micBtn.classList.remove("mic-listening"); };
-    recognition.start();
+    if (!('webkitSpeechRecognition' in window)) { alert("Use Chrome for Voice."); return; }
+    const r = new webkitSpeechRecognition(); r.lang = 'en-US'; 
+    r.onstart = () => document.getElementById("advice-query").placeholder = "Listening...";
+    r.onresult = (e) => { document.getElementById("advice-query").value = e.results[0][0].transcript; getAdvice(); };
+    r.start();
 }
-
 function getAdvice() {
-    const query = document.getElementById("advice-query").value.toLowerCase();
-    const res = document.getElementById("advice-result");
-    res.innerHTML = "Thinking...";
+    const q = document.getElementById("advice-query").value.toLowerCase();
+    const r = document.getElementById("advice-result");
+    r.innerHTML = "Checking...";
     setTimeout(() => {
-        let advice = "";
-        if (query.includes("yellow") || query.includes("leaf")) {
-            advice = "🍂 <b>Diagnosis:</b> Nitrogen Deficiency.\n👉 <b>Remedy:</b> Apply Urea (20kg/acre) or spray NPK 19:19:19.";
-        } else if (query.includes("price") || query.includes("rate")) {
-            advice = "💰 <b>Market Intelligence:</b>\nGovt Rate: ₹266 per bag.\n⚠️ <b>Alert:</b> Do not pay more than ₹270.";
-        } else if (query.includes("weather")) {
-            advice = "🌤️ <b>Weather Alert:</b>\nLight rain expected in next 24 hours. Hold irrigation.";
-        } else {
-            advice = "🙏 I am your Agri-Gyani.\nAsk about 'Yellow leaves', 'Fertilizer Price', or 'Weather'.";
-        }
-        res.innerHTML = advice;
+        if(q.includes("leaf")) r.innerHTML = "🍂 <b>Diagnosis:</b> Deficiency suspected. Spray NPK.";
+        else if(q.includes("price")) r.innerHTML = "💰 <b>Market:</b> Rates are stable.";
+        else r.innerHTML = "🙏 Ask about Diseases, Prices, or Weather.";
     }, 500);
 }
