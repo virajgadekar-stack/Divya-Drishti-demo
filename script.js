@@ -40,9 +40,11 @@ window.onload = function() {
     }
 
     const stateSelect = document.getElementById("state-select");
-    for (let state in LOCATION_DATA) {
-        let opt = document.createElement("option"); opt.value = state; opt.text = state;
-        stateSelect.appendChild(opt);
+    if(stateSelect) {
+        for (let state in LOCATION_DATA) {
+            let opt = document.createElement("option"); opt.value = state; opt.text = state;
+            stateSelect.appendChild(opt);
+        }
     }
 };
 
@@ -104,36 +106,54 @@ function loginUser(name, village, state) {
     document.getElementById("welcome-text").innerText = `Namaste, ${name} ji!`;
     document.getElementById("location-text").innerText = `📍 ${village}, ${state || ""}`;
     
-    // Trigger Real Weather Fetch
-    getRealWeather();
+    // FETCH WEATHER FOR REGISTERED LOCATION
+    getWeatherForLocation(village, state);
 }
 
-// --- REAL WEATHER API LOGIC (OPEN-METEO) ---
-function getRealWeather() {
+// --- REAL WEATHER API LOGIC (OPEN-METEO + GEOCODING) ---
+
+// 1. Convert "Village, State" to Lat/Lon
+async function getWeatherForLocation(village, state) {
     const tempDiv = document.getElementById("weather-temp");
     const descDiv = document.getElementById("weather-desc");
+    
+    tempDiv.innerHTML = "--";
+    descDiv.innerHTML = "Fetching Location...";
 
-    tempDiv.innerHTML = "Wait...";
-    descDiv.innerHTML = "Locating...";
+    try {
+        // Search for the location name
+        const searchQuery = `${village}, ${state}, India`;
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchQuery)}&count=1&format=json`;
+        
+        const geoRes = await fetch(geoUrl);
+        const geoData = await geoRes.json();
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                fetchWeather(lat, lon);
-            },
-            (error) => {
-                // If user denies location, fallback to default (New Delhi coordinates)
-                descDiv.innerHTML = "Location Denied. Showing Delhi.";
-                fetchWeather(28.61, 77.20); 
+        if (geoData.results && geoData.results.length > 0) {
+            const lat = geoData.results[0].latitude;
+            const lon = geoData.results[0].longitude;
+            
+            descDiv.innerHTML = "Loading Weather...";
+            fetchWeather(lat, lon);
+        } else {
+            // Fallback: If village not found, try just the State
+            console.log("Village not found, trying state...");
+            const stateUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state)}&count=1&format=json`;
+            const stateRes = await fetch(stateUrl);
+            const stateData = await stateRes.json();
+            
+            if (stateData.results && stateData.results.length > 0) {
+                 fetchWeather(stateData.results[0].latitude, stateData.results[0].longitude);
+            } else {
+                 descDiv.innerHTML = "Location Not Found";
             }
-        );
-    } else {
-        descDiv.innerHTML = "GPS Not Supported.";
+        }
+    } catch (error) {
+        console.error(error);
+        descDiv.innerHTML = "Connection Error";
     }
 }
 
+// 2. Get Weather using Lat/Lon (Same as before)
 async function fetchWeather(lat, lon) {
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
@@ -153,7 +173,7 @@ async function fetchWeather(lat, lon) {
 }
 
 function getWeatherDescription(code) {
-    // WMO Weather interpretation codes (0-99)
+    // WMO Weather interpretation codes
     if (code === 0) return "☀️ Clear Sky";
     if (code === 1 || code === 2 || code === 3) return "⛅ Partly Cloudy";
     if (code >= 45 && code <= 48) return "🌫️ Foggy";
@@ -163,6 +183,24 @@ function getWeatherDescription(code) {
     if (code >= 80 && code <= 82) return "🌦️ Showers";
     if (code >= 95) return "⛈️ Thunderstorm";
     return "Unknown";
+}
+
+// --- Manual Refresh Button (GPS Fallback) ---
+function getRealWeather() {
+    // If user clicks the refresh button, we try GPS as a fallback or update
+    if (navigator.geolocation) {
+         document.getElementById("weather-desc").innerText = "Using GPS...";
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                fetchWeather(position.coords.latitude, position.coords.longitude);
+            },
+            (error) => {
+                alert("GPS permission denied. Showing registered location weather.");
+            }
+        );
+    } else {
+        alert("GPS not supported.");
+    }
 }
 
 function logoutUser() {
