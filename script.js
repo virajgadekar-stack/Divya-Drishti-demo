@@ -103,26 +103,72 @@ function loginUser(name, village, state) {
     document.getElementById("dashboard-screen").style.display = "block";
     document.getElementById("welcome-text").innerText = `Namaste, ${name} ji!`;
     document.getElementById("location-text").innerText = `📍 ${village}, ${state || ""}`;
-    updateWeather();
+    
+    // Trigger Real Weather Fetch
+    getRealWeather();
 }
 
-function updateWeather() {
-    // Simulated Weather Data
-    const temps = [28, 30, 32, 29, 34];
-    const conditions = ["Sunny", "Partly Cloudy", "Clear Sky", "Haze"];
-    
-    const randomTemp = temps[Math.floor(Math.random() * temps.length)];
-    const randomCond = conditions[Math.floor(Math.random() * conditions.length)];
+// --- REAL WEATHER API LOGIC (OPEN-METEO) ---
+function getRealWeather() {
+    const tempDiv = document.getElementById("weather-temp");
+    const descDiv = document.getElementById("weather-desc");
 
-    document.getElementById("weather-temp").innerText = `${randomTemp}°C`;
-    document.getElementById("weather-desc").innerText = randomCond;
+    tempDiv.innerHTML = "Wait...";
+    descDiv.innerHTML = "Locating...";
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                fetchWeather(lat, lon);
+            },
+            (error) => {
+                // If user denies location, fallback to default (New Delhi coordinates)
+                descDiv.innerHTML = "Location Denied. Showing Delhi.";
+                fetchWeather(28.61, 77.20); 
+            }
+        );
+    } else {
+        descDiv.innerHTML = "GPS Not Supported.";
+    }
+}
+
+async function fetchWeather(lat, lon) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.current_weather) {
+            const t = data.current_weather.temperature;
+            const code = data.current_weather.weathercode;
+            
+            document.getElementById("weather-temp").innerText = `${t}°C`;
+            document.getElementById("weather-desc").innerText = getWeatherDescription(code);
+        }
+    } catch (err) {
+        document.getElementById("weather-desc").innerText = "Network Error";
+    }
+}
+
+function getWeatherDescription(code) {
+    // WMO Weather interpretation codes (0-99)
+    if (code === 0) return "☀️ Clear Sky";
+    if (code === 1 || code === 2 || code === 3) return "⛅ Partly Cloudy";
+    if (code >= 45 && code <= 48) return "🌫️ Foggy";
+    if (code >= 51 && code <= 55) return "🌧️ Drizzle";
+    if (code >= 61 && code <= 67) return "🌧️ Rain";
+    if (code >= 71 && code <= 77) return "❄️ Snow";
+    if (code >= 80 && code <= 82) return "🌦️ Showers";
+    if (code >= 95) return "⛈️ Thunderstorm";
+    return "Unknown";
 }
 
 function logoutUser() {
     localStorage.removeItem("farmerUser");
     document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("login-screen").style.display = "block";
-    // Reset fields
     document.getElementById("fname").value = "";
     document.getElementById("state-select").value = "";
     document.getElementById("district-select").innerHTML = '<option value="">-- Select District --</option>';
