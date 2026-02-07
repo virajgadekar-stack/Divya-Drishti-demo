@@ -1,0 +1,131 @@
+/* --- THEME & VARIABLES --- */
+:root {
+    --primary: #2e7d32;
+    --gold: #ffb300;
+    --bg: #f1f8e9;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    color: #1b5e20;
+}
+
+/* --- HEADER --- */
+header { text-align: center; margin-top: 30px; margin-bottom: 20px; }
+
+.shield-logo {
+    width: 60px; height: 70px;
+    background: linear-gradient(135deg, #ffb300, #ff8f00);
+    border-radius: 5px 5px 30px 30px;
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 35px; color: white;
+    box-shadow: 0 4px 15px rgba(255, 143, 0, 0.4);
+    border: 3px solid rgba(255,255,255,0.4);
+}
+.shield-logo::after { content: '👁️'; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); }
+
+h1 { margin: 10px 0 5px; font-size: 24px; color: var(--primary); }
+
+/* --- CONTAINERS --- */
+.container { width: 90%; max-width: 450px; padding-bottom: 50px; }
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* --- FORM ELEMENTS --- */
+label { font-size: 14px; font-weight: 600; color: #555; margin-top: 15px; display: block; }
+
+input, select {
+    width: 100%; padding: 12px; margin-top: 5px;
+    border: 2px solid #c8e6c9; border-radius: 10px;
+    font-size: 15px; box-sizing: border-box;
+    font-family: 'Poppins', sans-serif; background: #fff;
+}
+input:focus, select:focus { border-color: var(--primary); outline: none; }
+
+.crop-row {
+    display: flex; gap: 10px; margin-top: 10px;
+    background: #f9fbe7; padding: 10px; border-radius: 10px; border: 1px dashed #c0ca33;
+}
+
+/* --- BUTTONS --- */
+.btn-primary {
+    background: linear-gradient(to right, #2e7d32, #4caf50);
+    color: white; border: none; padding: 15px;
+    border-radius: 30px; font-size: 16px; font-weight: bold;
+    width: 100%; margin-top: 25px; cursor: pointer;
+    box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+    transition: transform 0.2s;
+}
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-outline {
+    background: transparent; border: 2px solid var(--primary);
+    color: var(--primary); padding: 15px; border-radius: 30px;
+    font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer;
+}
+
+.back-btn {
+    background: #ddd; border: none; color: #333;
+    padding: 8px 15px; border-radius: 20px; font-weight: 600;
+    margin-bottom: 15px; cursor: pointer; display: inline-block;
+}
+
+/* --- DASHBOARD ICONS --- */
+.dashboard-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
+}
+
+.flashy-icon {
+    background: white; border-radius: 20px; padding: 20px; text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1); cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+}
+.flashy-icon:hover { transform: scale(1.1); box-shadow: 0 15px 30px rgba(46, 125, 50, 0.25); border-color: var(--primary); }
+
+.icon-symbol { font-size: 40px; display: block; margin-bottom: 10px; }
+.icon-title { font-weight: 700; color: var(--primary); font-size: 14px; }
+
+/* --- VOICE SEARCH --- */
+.voice-search-container { display: flex; align-items: center; gap: 5px; position: relative; }
+.mic-btn {
+    background: var(--gold); border: none; width: 45px; height: 45px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 20px; color: white; box-shadow: 0 4px 10px rgba(255, 179, 0, 0.4); margin-top: 5px;
+}
+.mic-listening { animation: pulse 1s infinite; background: red; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+/* --- SCREENS --- */
+#dashboard-screen, #scan-interface, #scan-result-screen, #advisor-interface { display: none; }
+
+/* --- RESULTS --- */
+#success-msg {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(46, 125, 50, 0.95); z-index: 999;
+    align-items: center; justify-content: center; flex-direction: column;
+    color: white; text-align: center;
+}
+.scan-code-display {
+    background: #333; color: #0f0; font-family: monospace;
+    padding: 10px; border-radius: 5px; margin-bottom: 20px;
+    text-align: center; font-size: 1.2em; word-break: break-all;
+}
+.result-large { padding: 30px; text-align: center; border-radius: 15px; margin-bottom: 20px; }
+.safe { background: #e8f5e9; border: 2px solid green; color: green; }
+.fake { background: #ffebee; border: 2px solid red; color: red; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
