@@ -382,3 +382,125 @@ function openMandi() {
     html += `</table>`;
     container.innerHTML = html;
 }
+// Keep existing DB and Logic. Update UI helper functions below:
+
+// --- NAVIGATION HELPERS ---
+function showScreen(screenId) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+    // Show target
+    document.getElementById(screenId).classList.add('active-screen');
+    
+    // Header logic
+    if (screenId === 'dashboard-screen') {
+        document.getElementById('main-header').style.display = 'flex';
+    } else {
+        document.getElementById('main-header').style.display = 'none';
+    }
+}
+
+function goHome() {
+    stopScanner();
+    showScreen('dashboard-screen');
+}
+
+function openScanner() { showScreen('scan-interface'); }
+function openAdvisor() { showScreen('advisor-interface'); }
+function openMandi() { showScreen('mandi-interface'); openMandiLogic(); } // Call logic to load table
+function openPoshan() { showScreen('poshan-interface'); loadCropsForAdvisory(); }
+
+function loginUser(name, village, state) {
+    currentUserState = state || "Maharashtra";
+    showScreen('dashboard-screen');
+    document.getElementById("location-text").innerText = `📍 ${village}, ${state}`;
+    getWeatherForLocation(village, state);
+}
+
+// --- SCAN RESULT STYLING ---
+function showResultScreen(content, type) {
+    showScreen('scan-result-screen');
+    const resIcon = document.getElementById("res-icon");
+    const resStatus = document.getElementById("res-status");
+    const resName = document.getElementById("res-name");
+    const resMsg = document.getElementById("res-msg");
+    const resExp = document.getElementById("res-exp");
+
+    resStatus.innerText = "Verifying...";
+    resIcon.innerText = "🔍";
+
+    setTimeout(() => {
+        let data = (type === "CODE") ? PRODUCT_DB[content] : null;
+
+        if (data) {
+            let isExpired = false;
+            if (data.expiry && data.expiry !== "N/A") {
+                const expDate = new Date(data.expiry);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                if (today > expDate) isExpired = true;
+            }
+
+            resName.innerText = data.name;
+            resExp.innerText = data.expiry;
+
+            if (data.status === "SAFE") {
+                if (isExpired) {
+                    resIcon.innerText = "⚠️";
+                    resStatus.innerText = "EXPIRED";
+                    resStatus.style.color = "#d63031"; // Red
+                    resMsg.innerText = "This product has expired. Do not use.";
+                } else {
+                    resIcon.innerText = "✅";
+                    resStatus.innerText = "GENUINE";
+                    resStatus.style.color = "#00b894"; // Green
+                    resMsg.innerText = data.message;
+                }
+            } else {
+                resIcon.innerText = "❌";
+                resStatus.innerText = "FAKE ALERT";
+                resStatus.style.color = "#d63031";
+                resMsg.innerText = data.message;
+            }
+        } else if (type === "TEXT") {
+            resIcon.innerText = "📝";
+            resStatus.innerText = "Text Detected";
+            resStatus.style.color = "#0984e3";
+            resName.innerText = content;
+            resMsg.innerText = "Agricultural keyword found.";
+            resExp.innerText = "N/A";
+        } else {
+            resIcon.innerText = "❔";
+            resStatus.innerText = "Unknown";
+            resStatus.style.color = "#636e72";
+            resName.innerText = "Code: " + content;
+            resMsg.innerText = "Product not found in database.";
+            resExp.innerText = "--";
+        }
+    }, 800);
+}
+
+// --- CHAT UI UPDATE ---
+function addMessage(txt, sender) {
+    const history = document.getElementById("chat-history");
+    const div = document.createElement("div");
+    div.className = `msg ${sender}`;
+    div.innerHTML = `<div class="bubble">${txt}</div>`;
+    history.appendChild(div);
+    history.scrollTop = history.scrollHeight;
+}
+
+// Ensure Mandi Table logic uses new class names
+function openMandiLogic() {
+    const container = document.getElementById("mandi-table-container");
+    const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
+    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price</th><th>Trend</th></tr>`;
+    rates.forEach(item => {
+        const arrow = item.trend === "up" ? "▲" : "▼";
+        const colorClass = item.trend === "up" ? "trend-up" : "trend-down";
+        html += `<tr><td>${item.crop}</td><td>${item.price}</td><td class="${colorClass}">${arrow}</td></tr>`;
+    });
+    html += `</table>`;
+    container.innerHTML = html;
+}
+
+// Add these to existing script.js to replace the old navigation logic.
