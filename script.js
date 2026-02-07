@@ -9,9 +9,9 @@ const PRODUCT_DB = {
 const KEYWORDS_DB = ["UREA", "DAP", "ZINC", "NPK", "COTTON", "PESTICIDE", "SEED", "IFFCO", "MAHYCO"];
 
 const FERTILIZER_ADVISORY_DB = {
-    "Wheat": [ { days: 21, msg: "CRI Stage: Apply Urea + Zinc. Irrigate now." }, { days: 45, msg: "Tillering: Apply Urea. Check for yellowing." }, { days: 65, msg: "Flowering: Spray NPK 0:52:34." } ],
+    "Wheat": [ { days: 21, msg: "CRI Stage: Apply Urea + Zinc. Irrigate now." }, { days: 45, msg: "Tillering: Apply Urea. Check for yellowing." } ],
     "Rice (Paddy)": [ { days: 15, msg: "Seedling: Apply Zinc Sulfate." }, { days: 30, msg: "Tillering: Top dress with Urea." } ],
-    "Cotton": [ { days: 45, msg: "Square Formation: Magnesium Sulfate + NPK 19:19:19." }, { days: 70, msg: "Flowering: Spray Boron." } ],
+    "Cotton": [ { days: 45, msg: "Square Formation: Magnesium Sulfate + NPK 19:19:19." } ],
     "General": [ { days: 0, msg: "Basal Dose: Ensure DAP/SSP is applied." } ]
 };
 
@@ -87,8 +87,6 @@ function submitRegistration() {
     const name = document.getElementById("fname").value;
     const state = document.getElementById("state-select").value;
     const v = document.getElementById("village-select").value;
-    
-    // Save Crops
     const cropSelects = document.querySelectorAll(".crop-name");
     let myCrops = [];
     cropSelects.forEach(s => { if(s.value) myCrops.push(s.value); });
@@ -145,7 +143,7 @@ async function fetchWeather(lat, lon) {
 }
 function getRealWeather() { navigator.geolocation.getCurrentPosition((p) => fetchWeather(p.coords.latitude, p.coords.longitude)); }
 
-// --- 6. SATYA SCAN & EXPIRY LOGIC (FIXED) ---
+// --- 6. SATYA SCAN & EXPIRY LOGIC ---
 function openScanner() {
     goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
@@ -172,7 +170,7 @@ async function startScanner() {
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
     html5QrcodeScanner = new Html5Qrcode("reader");
     
-    // Standard Config for QR and Barcode
+    // Standard Config
     const config = { fps: 10, qrbox: 250 };
     
     try { await html5QrcodeScanner.start({ facingMode: "environment" }, config, (t) => { handleScanSuccess(t); }, (e) => {}); }
@@ -200,14 +198,11 @@ function showResultScreen(content, type) {
     setTimeout(() => {
         let data = (type === "CODE") ? PRODUCT_DB[content] : null;
 
-        // If not found in DB but it's a valid code, show unknown
         if (data) {
-            // Expiry Check
             let isExpired = false;
             if (data.expiry && data.expiry !== "N/A") {
                 const expDate = new Date(data.expiry);
                 const today = new Date();
-                // Reset times to compare dates only
                 today.setHours(0,0,0,0);
                 if (today > expDate) isExpired = true;
             }
@@ -225,7 +220,6 @@ function showResultScreen(content, type) {
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
-            // Check if it's a Text Scan result
             if(type === "TEXT") {
                 resBox.className = "result-large safe";
                 resBox.innerHTML = `<h2 style="margin:0">✅ TEXT DETECTED</h2><h4>Found: ${content}</h4><p>This keyword indicates a valid agricultural product type.</p>`;
@@ -250,7 +244,7 @@ async function captureAndReadText() {
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
     
-    stopScanner(); // Pause camera
+    stopScanner(); 
     statusDiv.innerText = "🧠 Analyzing Text...";
     
     try {
@@ -262,7 +256,7 @@ async function captureAndReadText() {
         if (keyword) showResultScreen(keyword, "TEXT");
         else {
             alert("No agricultural keywords found.");
-            openScanner(); // Restart
+            openScanner();
         }
     } catch(e) { alert("OCR Error"); openScanner(); }
 }
@@ -361,7 +355,7 @@ function startVoiceInput() {
     r.onresult = (e) => { 
         document.getElementById("advice-query").value = e.results[0][0].transcript; 
         btn.classList.remove("mic-listening");
-        sendChat(); // Auto send
+        sendChat();
     };
     r.onend = () => btn.classList.remove("mic-listening");
     r.start();
@@ -373,134 +367,12 @@ function openMandi() {
     document.getElementById("mandi-interface").style.display = "block";
     const container = document.getElementById("mandi-table-container");
     const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
-    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price</th><th>Trend</th></tr>`;
+    let html = `<table style="width:100%; border-collapse: collapse;"><tr><th style="text-align:left;">Crop</th><th style="text-align:left;">Price</th><th>Trend</th></tr>`;
     rates.forEach(item => {
         const arrow = item.trend === "up" ? "▲" : "▼";
-        const colorClass = item.trend === "up" ? "price-up" : "price-down";
-        html += `<tr><td>${item.crop}</td><td>${item.price}</td><td class="${colorClass}">${arrow}</td></tr>`;
+        const color = item.trend === "up" ? "green" : "red";
+        html += `<tr><td style="padding:10px; border-bottom:1px solid #eee;">${item.crop}</td><td style="padding:10px; border-bottom:1px solid #eee;">${item.price}</td><td style="color:${color}; font-weight:bold;">${arrow}</td></tr>`;
     });
     html += `</table>`;
     container.innerHTML = html;
 }
-// Keep existing DB and Logic. Update UI helper functions below:
-
-// --- NAVIGATION HELPERS ---
-function showScreen(screenId) {
-    // Hide all screens
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
-    // Show target
-    document.getElementById(screenId).classList.add('active-screen');
-    
-    // Header logic
-    if (screenId === 'dashboard-screen') {
-        document.getElementById('main-header').style.display = 'flex';
-    } else {
-        document.getElementById('main-header').style.display = 'none';
-    }
-}
-
-function goHome() {
-    stopScanner();
-    showScreen('dashboard-screen');
-}
-
-function openScanner() { showScreen('scan-interface'); }
-function openAdvisor() { showScreen('advisor-interface'); }
-function openMandi() { showScreen('mandi-interface'); openMandiLogic(); } // Call logic to load table
-function openPoshan() { showScreen('poshan-interface'); loadCropsForAdvisory(); }
-
-function loginUser(name, village, state) {
-    currentUserState = state || "Maharashtra";
-    showScreen('dashboard-screen');
-    document.getElementById("location-text").innerText = `📍 ${village}, ${state}`;
-    getWeatherForLocation(village, state);
-}
-
-// --- SCAN RESULT STYLING ---
-function showResultScreen(content, type) {
-    showScreen('scan-result-screen');
-    const resIcon = document.getElementById("res-icon");
-    const resStatus = document.getElementById("res-status");
-    const resName = document.getElementById("res-name");
-    const resMsg = document.getElementById("res-msg");
-    const resExp = document.getElementById("res-exp");
-
-    resStatus.innerText = "Verifying...";
-    resIcon.innerText = "🔍";
-
-    setTimeout(() => {
-        let data = (type === "CODE") ? PRODUCT_DB[content] : null;
-
-        if (data) {
-            let isExpired = false;
-            if (data.expiry && data.expiry !== "N/A") {
-                const expDate = new Date(data.expiry);
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                if (today > expDate) isExpired = true;
-            }
-
-            resName.innerText = data.name;
-            resExp.innerText = data.expiry;
-
-            if (data.status === "SAFE") {
-                if (isExpired) {
-                    resIcon.innerText = "⚠️";
-                    resStatus.innerText = "EXPIRED";
-                    resStatus.style.color = "#d63031"; // Red
-                    resMsg.innerText = "This product has expired. Do not use.";
-                } else {
-                    resIcon.innerText = "✅";
-                    resStatus.innerText = "GENUINE";
-                    resStatus.style.color = "#00b894"; // Green
-                    resMsg.innerText = data.message;
-                }
-            } else {
-                resIcon.innerText = "❌";
-                resStatus.innerText = "FAKE ALERT";
-                resStatus.style.color = "#d63031";
-                resMsg.innerText = data.message;
-            }
-        } else if (type === "TEXT") {
-            resIcon.innerText = "📝";
-            resStatus.innerText = "Text Detected";
-            resStatus.style.color = "#0984e3";
-            resName.innerText = content;
-            resMsg.innerText = "Agricultural keyword found.";
-            resExp.innerText = "N/A";
-        } else {
-            resIcon.innerText = "❔";
-            resStatus.innerText = "Unknown";
-            resStatus.style.color = "#636e72";
-            resName.innerText = "Code: " + content;
-            resMsg.innerText = "Product not found in database.";
-            resExp.innerText = "--";
-        }
-    }, 800);
-}
-
-// --- CHAT UI UPDATE ---
-function addMessage(txt, sender) {
-    const history = document.getElementById("chat-history");
-    const div = document.createElement("div");
-    div.className = `msg ${sender}`;
-    div.innerHTML = `<div class="bubble">${txt}</div>`;
-    history.appendChild(div);
-    history.scrollTop = history.scrollHeight;
-}
-
-// Ensure Mandi Table logic uses new class names
-function openMandiLogic() {
-    const container = document.getElementById("mandi-table-container");
-    const rates = MANDI_DATA[currentUserState] || MANDI_DATA["Maharashtra"];
-    let html = `<table class="mandi-table"><tr><th>Crop</th><th>Price</th><th>Trend</th></tr>`;
-    rates.forEach(item => {
-        const arrow = item.trend === "up" ? "▲" : "▼";
-        const colorClass = item.trend === "up" ? "trend-up" : "trend-down";
-        html += `<tr><td>${item.crop}</td><td>${item.price}</td><td class="${colorClass}">${arrow}</td></tr>`;
-    });
-    html += `</table>`;
-    container.innerHTML = html;
-}
-
-// Add these to existing script.js to replace the old navigation logic.
