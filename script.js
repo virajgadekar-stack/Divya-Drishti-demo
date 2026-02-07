@@ -1,32 +1,18 @@
 // --- 1. CONFIGURATION & DATA ---
 const PRODUCT_DB = {
-    // Valid Product
     "DATA-TRUST-101": { status: "SAFE", name: "Mahyco Cotton Seeds (Bt)", message: "✅ GENUINE. Batch #MH-2025 verified.", expiry: "2026-12-31" },
-    // Fake Product
     "FAKE-PESTICIDE-99": { status: "FAKE", name: "Counterfeit / Unknown", message: "❌ WARNING: Fake Product Detected!", expiry: "N/A" },
-    // Expired Product (For Testing)
     "OLD-FERT-2020": { status: "SAFE", name: "DAP Fertilizer (Old Batch)", message: "⚠️ Verified but Check Date.", expiry: "2022-01-01" },
-    // Barcode Example
     "1234567890128": { status: "SAFE", name: "Generic Urea Bag (50kg)", message: "✅ Verified IFFCO Standard.", expiry: "2026-03-15" }
 };
 
+const KEYWORDS_DB = ["UREA", "DAP", "ZINC", "NPK", "COTTON", "PESTICIDE", "SEED", "IFFCO", "MAHYCO"];
+
 const FERTILIZER_ADVISORY_DB = {
-    "Wheat": [
-        { days: 21, msg: "CRI Stage (Root Initiation): Apply Urea (half dose) + Zinc. Irrigating now is critical." },
-        { days: 45, msg: "Tillering Stage: Apply remaining Urea. Check for yellowing leaves." },
-        { days: 65, msg: "Flowering Stage: Spray NPK 0:52:34 for better grain filling." }
-    ],
-    "Rice (Paddy)": [
-        { days: 15, msg: "Seedling Stage: Apply Zinc Sulfate if leaves turn rusty." },
-        { days: 30, msg: "Active Tillering: Top dress with Urea. Maintain 2-3cm water level." }
-    ],
-    "Cotton": [
-        { days: 45, msg: "Square Formation: Apply Magnesium Sulfate + NPK 19:19:19 spray." },
-        { days: 70, msg: "Flowering: Spray Boron for better boll retention." }
-    ],
-    "General": [
-        { days: 0, msg: "Basal Dose: Ensure DAP/SSP is applied below seed level." }
-    ]
+    "Wheat": [ { days: 21, msg: "CRI Stage: Apply Urea + Zinc. Irrigate now." }, { days: 45, msg: "Tillering: Apply Urea. Check for yellowing." }, { days: 65, msg: "Flowering: Spray NPK 0:52:34." } ],
+    "Rice (Paddy)": [ { days: 15, msg: "Seedling: Apply Zinc Sulfate." }, { days: 30, msg: "Tillering: Top dress with Urea." } ],
+    "Cotton": [ { days: 45, msg: "Square Formation: Magnesium Sulfate + NPK 19:19:19." }, { days: 70, msg: "Flowering: Spray Boron." } ],
+    "General": [ { days: 0, msg: "Basal Dose: Ensure DAP/SSP is applied." } ]
 };
 
 const CROP_LIST = ["Wheat", "Rice (Paddy)", "Cotton", "Sugarcane", "Maize", "Soybean", "Groundnut", "Mustard", "Turmeric", "Tomato", "Potato", "Onion"];
@@ -126,7 +112,9 @@ function loginUser(name, village, state) {
 // --- 4. NAVIGATION & FEATURES ---
 function goHome() {
     stopScanner();
-    document.querySelectorAll(".container > div").forEach(d => d.style.display = "none");
+    document.querySelectorAll(".container > div").forEach(d => {
+        if(d.id !== 'success-msg') d.style.display = "none";
+    });
     document.getElementById("dashboard-screen").style.display = "block";
 }
 function logoutUser() { localStorage.removeItem("farmerUser"); location.reload(); }
@@ -157,7 +145,7 @@ async function fetchWeather(lat, lon) {
 }
 function getRealWeather() { navigator.geolocation.getCurrentPosition((p) => fetchWeather(p.coords.latitude, p.coords.longitude)); }
 
-// --- 6. SATYA SCAN & EXPIRY LOGIC ---
+// --- 6. SATYA SCAN & EXPIRY LOGIC (FIXED) ---
 function openScanner() {
     goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("scan-interface").style.display = "block";
@@ -183,13 +171,18 @@ async function startScanner() {
 
     if (html5QrcodeScanner) { try { await html5QrcodeScanner.clear(); } catch(e){} }
     html5QrcodeScanner = new Html5Qrcode("reader");
-    try { await html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => { handleScanSuccess(t); }, (e) => {}); }
+    
+    // Standard Config for QR and Barcode
+    const config = { fps: 10, qrbox: 250 };
+    
+    try { await html5QrcodeScanner.start({ facingMode: "environment" }, config, (t) => { handleScanSuccess(t); }, (e) => {}); }
     catch (err) { alert("Camera Error: " + err); stopScanner(); }
 }
 
 function stopScanner() {
     if (html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => html5QrcodeScanner.clear()).catch(e=>{}); html5QrcodeScanner = null; }
     if (scanTimeout) clearInterval(scanTimeout);
+    document.getElementById('scan-timer').style.visibility = 'hidden';
 }
 
 function handleScanSuccess(code) {
@@ -207,19 +200,22 @@ function showResultScreen(content, type) {
     setTimeout(() => {
         let data = (type === "CODE") ? PRODUCT_DB[content] : null;
 
+        // If not found in DB but it's a valid code, show unknown
         if (data) {
-            // --- NEW: EXPIRY CHECK LOGIC ---
+            // Expiry Check
             let isExpired = false;
             if (data.expiry && data.expiry !== "N/A") {
                 const expDate = new Date(data.expiry);
                 const today = new Date();
+                // Reset times to compare dates only
+                today.setHours(0,0,0,0);
                 if (today > expDate) isExpired = true;
             }
 
             if (data.status === "SAFE") {
                 if (isExpired) {
                     resBox.className = "result-large expired";
-                    resBox.innerHTML = `<h2 style="margin:0">⚠️ EXPIRED</h2><h4>${data.name}</h4><p>This product expired on <b>${data.expiry}</b>.</p><p><b>DO NOT USE.</b></p>`;
+                    resBox.innerHTML = `<h2 style="margin:0">⚠️ EXPIRED</h2><h4>${data.name}</h4><p>Expired on <b>${data.expiry}</b>.</p><p><b>DO NOT USE.</b></p>`;
                 } else {
                     resBox.className = "result-large safe";
                     resBox.innerHTML = `<h2 style="margin:0">✅ GENUINE</h2><h4>${data.name}</h4><p>${data.message}</p><small>Exp: ${data.expiry}</small>`;
@@ -229,37 +225,65 @@ function showResultScreen(content, type) {
                 resBox.innerHTML = `<h2 style="margin:0">❌ ALERT</h2><h4>${data.name}</h4><p>${data.message}</p>`;
             }
         } else {
-            resBox.className = "result-large";
-            resBox.style.background = "#eeeeee"; resBox.style.border = "2px solid #999"; resBox.style.color = "#555";
-            resBox.innerHTML = `<h2 style="margin:0">ℹ️ NO DATA</h2><p>Product information unavailable.</p>`;
+            // Check if it's a Text Scan result
+            if(type === "TEXT") {
+                resBox.className = "result-large safe";
+                resBox.innerHTML = `<h2 style="margin:0">✅ TEXT DETECTED</h2><h4>Found: ${content}</h4><p>This keyword indicates a valid agricultural product type.</p>`;
+            } else {
+                resBox.className = "result-large";
+                resBox.style.background = "#eeeeee"; resBox.style.border = "2px solid #999"; resBox.style.color = "#555";
+                resBox.innerHTML = `<h2 style="margin:0">ℹ️ NO DATA</h2><p>Product Code: ${content}</p><p>Not found in the database.</p>`;
+            }
         }
     }, 1000);
 }
 function exitScanResult() { document.getElementById("scan-result-screen").style.display = "none"; openScanner(); }
-async function captureAndReadText() { /* OCR Logic (unchanged from previous) */ }
 
-// --- 7. NEW FEATURE: POSHAN TRACKER ---
+async function captureAndReadText() { 
+    const statusDiv = document.getElementById("ocr-status");
+    statusDiv.innerText = "📸 Capturing...";
+    
+    const video = document.querySelector("#reader video");
+    if (!video) { statusDiv.innerText = "Camera not active"; return; }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    
+    stopScanner(); // Pause camera
+    statusDiv.innerText = "🧠 Analyzing Text...";
+    
+    try {
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const upper = text.toUpperCase();
+        console.log(upper);
+        const keyword = KEYWORDS_DB.find(k => upper.includes(k));
+        
+        if (keyword) showResultScreen(keyword, "TEXT");
+        else {
+            alert("No agricultural keywords found.");
+            openScanner(); // Restart
+        }
+    } catch(e) { alert("OCR Error"); openScanner(); }
+}
+
+// --- 7. POSHAN TRACKER ---
 function openPoshan() {
     goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("poshan-interface").style.display = "block";
-    
-    // Load crops into advisory dropdown
     const user = JSON.parse(localStorage.getItem("farmerUser"));
     const cropSel = document.getElementById("advisory-crop-select");
     cropSel.innerHTML = "";
     if (user && user.crops && user.crops.length > 0) {
-        user.crops.forEach(c => {
-            let opt = document.createElement("option"); opt.value = c; opt.text = c;
-            cropSel.appendChild(opt);
-        });
-    } else {
-        cropSel.innerHTML = "<option>No crops registered</option>";
-    }
+        user.crops.forEach(c => { let opt = document.createElement("option"); opt.value = c; opt.text = c; cropSel.appendChild(opt); });
+    } else { cropSel.innerHTML = "<option>No crops registered</option>"; }
 }
 
 function switchPoshanTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-    event.target.classList.add('active-tab');
+    if(tabName === 'log') document.getElementById("btn-log-tab").classList.add('active-tab');
+    else document.getElementById("btn-adv-tab").classList.add('active-tab');
+    
     document.getElementById('tab-log').style.display = (tabName === 'log') ? 'block' : 'none';
     document.getElementById('tab-advisory').style.display = (tabName === 'advisory') ? 'block' : 'none';
 }
@@ -268,60 +292,82 @@ function addToLog() {
     const name = document.getElementById("log-item-name").value;
     const date = document.getElementById("log-item-date").value;
     const list = document.getElementById("log-list");
-    
     if (name && date) {
-        const emptyMsg = list.querySelector(".empty-msg");
-        if (emptyMsg) emptyMsg.style.display = "none";
-
+        if(list.querySelector(".empty-msg")) list.querySelector(".empty-msg").style.display = "none";
         const li = document.createElement("li");
         li.innerHTML = `<span>${name}</span> <span style="color:#666; font-size:12px;">${date}</span>`;
         list.appendChild(li);
-        
-        // Clear inputs
         document.getElementById("log-item-name").value = "";
-        document.getElementById("log-item-date").value = "";
-    } else {
-        alert("Please enter Name and Date.");
-    }
+    } else alert("Enter details.");
 }
 
 function getFertilizerAdvice() {
     const crop = document.getElementById("advisory-crop-select").value;
     const days = parseInt(document.getElementById("crop-age-days").value);
     const out = document.getElementById("advisory-output");
+    if (!crop || isNaN(days)) { alert("Enter days."); return; }
     
-    if (!crop || isNaN(days)) { alert("Select crop and enter days."); return; }
-
-    let advice = `For <b>${crop}</b> at Day <b>${days}</b>:<br><br>`;
+    let advice = `<b>${crop} (Day ${days}):</b><br>`;
     let found = false;
-
-    // Check specific crop DB
     if (FERTILIZER_ADVISORY_DB[crop]) {
-        // Find the closest stage that hasn't passed yet or is relevant
-        let stages = FERTILIZER_ADVISORY_DB[crop];
-        // Sort stages by days
-        stages.sort((a,b) => a.days - b.days);
-        
-        for (let s of stages) {
-            // logic: if input days is within 5 days range of stage OR greater
-            // Simplification: Find recommendation for current window
-            if (Math.abs(days - s.days) <= 10) {
-                advice += `👉 <b>Recommendation:</b> ${s.msg}`;
-                found = true;
-                break;
-            }
+        for (let s of FERTILIZER_ADVISORY_DB[crop]) {
+            if (Math.abs(days - s.days) <= 10) { advice += `👉 ${s.msg}`; found = true; break; }
         }
     }
-    
-    if (!found) {
-        advice += "✅ Your crop seems to be in a steady growth phase. Ensure regular irrigation. No major fertilizers required this week.";
-    }
-
-    out.innerHTML = advice;
-    out.style.display = "block";
+    if (!found) advice += "✅ Standard growth phase. Maintain irrigation.";
+    out.innerHTML = advice; out.style.display = "block";
 }
 
-// --- 8. OTHER SERVICES ---
+// --- 8. AGRI GYANI (CHAT FIXED) ---
+function openAdvisor() { goHome(); document.getElementById("dashboard-screen").style.display = "none"; document.getElementById("advisor-interface").style.display = "flex"; }
+
+function handleChatEnter(e) { if(e.key === "Enter") sendChat(); }
+
+function sendChat() {
+    const input = document.getElementById("advice-query");
+    const txt = input.value.trim();
+    if(!txt) return;
+    
+    addMessage(txt, "user");
+    input.value = "";
+    
+    setTimeout(() => {
+        let response = "I am not sure about that. Try asking about 'Diseases' or 'Prices'.";
+        const q = txt.toLowerCase();
+        
+        if(q.includes("leaf") || q.includes("yellow")) response = "🍂 <b>Diagnosis:</b> Nitrogen Deficiency suspected.\n👉 <b>Remedy:</b> Apply Urea (20kg/acre) or spray NPK 19:19:19.";
+        else if(q.includes("price") || q.includes("rate") || q.includes("mandi")) response = "💰 <b>Market Update:</b> Onion prices are up (₹2400/q). Cotton is slightly down.";
+        else if(q.includes("weather") || q.includes("rain")) response = "🌤️ <b>Weather:</b> Clear skies expected for the next 3 days. Good for spraying.";
+        else if(q.includes("hello") || q.includes("hi")) response = "Namaste! How can I help your farm today?";
+        
+        addMessage(response, "bot");
+    }, 600);
+}
+
+function addMessage(txt, sender) {
+    const history = document.getElementById("chat-history");
+    const div = document.createElement("div");
+    div.className = `chat-msg ${sender}-msg`;
+    div.innerHTML = txt;
+    history.appendChild(div);
+    history.scrollTop = history.scrollHeight;
+}
+
+function startVoiceInput() {
+    if (!('webkitSpeechRecognition' in window)) { alert("Use Chrome for Voice."); return; }
+    const r = new webkitSpeechRecognition(); r.lang = 'en-US'; 
+    const btn = document.getElementById("mic-btn");
+    btn.classList.add("mic-listening");
+    r.onresult = (e) => { 
+        document.getElementById("advice-query").value = e.results[0][0].transcript; 
+        btn.classList.remove("mic-listening");
+        sendChat(); // Auto send
+    };
+    r.onend = () => btn.classList.remove("mic-listening");
+    r.start();
+}
+
+// --- 9. MANDI ---
 function openMandi() {
     goHome(); document.getElementById("dashboard-screen").style.display = "none";
     document.getElementById("mandi-interface").style.display = "block";
@@ -335,21 +381,4 @@ function openMandi() {
     });
     html += `</table>`;
     container.innerHTML = html;
-}
-function openAdvisor() { goHome(); document.getElementById("dashboard-screen").style.display = "none"; document.getElementById("advisor-interface").style.display = "block"; }
-function startVoiceInput() {
-    if (!('webkitSpeechRecognition' in window)) { alert("Use Chrome for Voice."); return; }
-    const r = new webkitSpeechRecognition(); r.lang = 'en-US'; 
-    r.onstart = () => document.getElementById("advice-query").placeholder = "Listening...";
-    r.onresult = (e) => { document.getElementById("advice-query").value = e.results[0][0].transcript; getAdvice(); };
-    r.start();
-}
-function getAdvice() {
-    const q = document.getElementById("advice-query").value.toLowerCase();
-    const r = document.getElementById("advice-result"); r.innerHTML = "Checking...";
-    setTimeout(() => {
-        if(q.includes("leaf")) r.innerHTML = "🍂 <b>Diagnosis:</b> Deficiency suspected. Spray NPK.";
-        else if(q.includes("price")) r.innerHTML = "💰 <b>Market:</b> Rates are stable.";
-        else r.innerHTML = "🙏 Ask about Diseases, Prices, or Weather.";
-    }, 500);
 }
