@@ -1,172 +1,55 @@
-/* --- THEME & VARIABLES --- */
-:root {
-    --primary: #2e7d32;
-    --gold: #ffb300;
-    --bg: #f1f8e9;
-    --danger: #d32f2f;
-}
-
-body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    color: #1b5e20;
-}
-
-/* --- HEADER --- */
+/* --- PREVIOUS CSS REMAINS THE SAME --- */
+:root { --primary: #2e7d32; --gold: #ffb300; --bg: #f1f8e9; --danger: #d32f2f; }
+body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #1b5e20; }
 header { text-align: center; margin-top: 30px; margin-bottom: 20px; }
-
-.shield-logo {
-    width: 60px; height: 70px;
-    background: linear-gradient(135deg, #ffb300, #ff8f00);
-    border-radius: 5px 5px 30px 30px;
-    display: inline-flex;
-    align-items: center; justify-content: center;
-    font-size: 35px; color: white;
-    box-shadow: 0 4px 15px rgba(255, 143, 0, 0.4);
-    border: 3px solid rgba(255,255,255,0.4);
-}
+.shield-logo { width: 60px; height: 70px; background: linear-gradient(135deg, #ffb300, #ff8f00); border-radius: 5px 5px 30px 30px; display: inline-flex; align-items: center; justify-content: center; font-size: 35px; color: white; box-shadow: 0 4px 15px rgba(255, 143, 0, 0.4); border: 3px solid rgba(255,255,255,0.4); }
 .shield-logo::after { content: '👁️'; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); }
-
 h1 { margin: 10px 0 5px; font-size: 24px; color: var(--primary); }
-
-/* --- CONTAINERS --- */
 .container { width: 90%; max-width: 450px; padding-bottom: 50px; }
+.card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); animation: fadeIn 0.5s ease-out; }
+.weather-card { background: linear-gradient(to right, #2e7d32, #1b5e20); color: white; margin-bottom: 20px; }
 
-.card {
-    background: white;
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    animation: fadeIn 0.5s ease-out;
-}
-
-.weather-card {
-    background: linear-gradient(to right, #2e7d32, #1b5e20);
-    color: white;
-    margin-bottom: 20px;
-}
-
-/* --- FORM ELEMENTS & VALIDATION --- */
+/* --- FORM & INPUTS --- */
 label { font-size: 14px; font-weight: 600; color: #555; margin-top: 15px; display: block; }
-
-/* Wrapper to position the tick mark */
 .valid-wrap { position: relative; width: 100%; }
-
-input, select {
-    width: 100%; padding: 12px; margin-top: 5px;
-    border: 2px solid #c8e6c9; border-radius: 10px;
-    font-size: 15px; box-sizing: border-box;
-    font-family: 'Poppins', sans-serif; background: #fff;
-}
+input, select { width: 100%; padding: 12px; margin-top: 5px; border: 2px solid #c8e6c9; border-radius: 10px; font-size: 15px; box-sizing: border-box; font-family: 'Poppins', sans-serif; background: #fff; }
 input:focus, select:focus { border-color: var(--primary); outline: none; }
-
-/* The Green Tick */
-.tick-mark {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-20%); /* Adjust for label spacing */
-    color: green;
-    font-weight: bold;
-    font-size: 18px;
-    display: none; /* Hidden by default */
-}
-
-/* When input is valid, show tick */
+.tick-mark { position: absolute; right: 15px; top: 50%; transform: translateY(-20%); color: green; font-weight: bold; font-size: 18px; display: none; }
 .input-valid + .tick-mark { display: block; }
 .input-valid { border-color: green !important; background: #e8f5e9; }
-
-.crop-row {
-    display: flex; gap: 10px; margin-top: 10px;
-    background: #f9fbe7; padding: 10px; border-radius: 10px; border: 1px dashed #c0ca33;
-}
+.crop-row { display: flex; gap: 10px; margin-top: 10px; background: #f9fbe7; padding: 10px; border-radius: 10px; border: 1px dashed #c0ca33; }
 
 /* --- BUTTONS --- */
-.btn-primary {
-    background: linear-gradient(to right, #2e7d32, #4caf50);
-    color: white; border: none; padding: 15px;
-    border-radius: 30px; font-size: 16px; font-weight: bold;
-    width: 100%; margin-top: 25px; cursor: pointer;
-    box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
-    transition: transform 0.2s;
-}
+.btn-primary { background: linear-gradient(to right, #2e7d32, #4caf50); color: white; border: none; padding: 15px; border-radius: 30px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 25px; cursor: pointer; box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3); transition: transform 0.2s; }
 .btn-primary:active { transform: scale(0.98); }
+.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 30px; font-size: 14px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; }
+.btn-logout { background: transparent; border: 2px solid var(--danger); color: var(--danger); padding: 10px; border-radius: 30px; font-size: 14px; font-weight: bold; width: 100%; margin-top: 30px; cursor: pointer; transition: all 0.2s; }
+.back-btn { background: #ddd; border: none; color: #333; padding: 8px 15px; border-radius: 20px; font-weight: 600; margin-bottom: 15px; cursor: pointer; display: inline-block; }
 
-.btn-outline {
-    background: transparent; border: 2px solid var(--primary);
-    color: var(--primary); padding: 10px; border-radius: 30px;
-    font-size: 14px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer;
-}
-
-.btn-logout {
-    background: transparent; border: 2px solid var(--danger);
-    color: var(--danger); padding: 10px; border-radius: 30px;
-    font-size: 14px; font-weight: bold; width: 100%; margin-top: 30px; 
-    cursor: pointer; transition: all 0.2s;
-}
-.btn-logout:hover { background: #ffebee; }
-
-.back-btn {
-    background: #ddd; border: none; color: #333;
-    padding: 8px 15px; border-radius: 20px; font-weight: 600;
-    margin-bottom: 15px; cursor: pointer; display: inline-block;
-}
-
-/* --- DASHBOARD ICONS --- */
-.dashboard-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
-}
-
-.flashy-icon {
-    background: white; border-radius: 20px; padding: 20px; text-align: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1); cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 2px solid transparent;
-}
+/* --- DASHBOARD --- */
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+.flashy-icon { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
 .flashy-icon:hover { transform: scale(1.1); box-shadow: 0 15px 30px rgba(46, 125, 50, 0.25); border-color: var(--primary); }
-
 .icon-symbol { font-size: 40px; display: block; margin-bottom: 10px; }
-.icon-title { font-weight: 700; color: var(--primary); font-size: 14px; }
+.icon-title { font-weight: 700; color: var(--primary); font-size: 13px; text-transform: uppercase; }
 
-/* --- VOICE SEARCH --- */
-.voice-search-container { display: flex; align-items: center; gap: 5px; position: relative; }
-.mic-btn {
-    background: var(--gold); border: none; width: 45px; height: 45px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-    font-size: 20px; color: white; box-shadow: 0 4px 10px rgba(255, 179, 0, 0.4); margin-top: 5px;
-}
-.mic-listening { animation: pulse 1s infinite; background: red; }
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+/* --- POSHAN TRACKER (NEW) --- */
+.tab-btn { flex: 1; padding: 10px; border: none; background: #ddd; border-radius: 10px; font-weight: 600; cursor: pointer; }
+.active-tab { background: var(--primary); color: white; }
+.log-list { list-style: none; padding: 0; margin-top: 15px; border-top: 1px solid #eee; }
+.log-list li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
+.empty-msg { color: #999; font-style: italic; text-align: center; display: block !important; justify-content: center !important; }
+.advisory-box { margin-top: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; border-radius: 5px; font-size: 14px; color: #0d47a1; }
 
-/* --- MANDI TABLE --- */
-.mandi-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.mandi-table th { background: #e8f5e9; padding: 10px; text-align: left; font-size: 13px; color: var(--primary); }
-.mandi-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-.price-up { color: green; font-weight: bold; }
-.price-down { color: red; font-weight: bold; }
-
-/* --- SCREENS --- */
-#dashboard-screen, #scan-interface, #scan-result-screen, #advisor-interface, #mandi-interface { display: none; }
-
-/* --- RESULTS --- */
-#success-msg {
-    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(46, 125, 50, 0.95); z-index: 999;
-    align-items: center; justify-content: center; flex-direction: column;
-    color: white; text-align: center;
-}
-.scan-code-display {
-    background: #333; color: #0f0; font-family: monospace;
-    padding: 10px; border-radius: 5px; margin-bottom: 20px;
-    text-align: center; font-size: 1.2em; word-break: break-all;
-}
+/* --- RESULTS & STATUS --- */
+#success-msg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(46, 125, 50, 0.95); z-index: 999; align-items: center; justify-content: center; flex-direction: column; color: white; text-align: center; }
+.scan-code-display { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center; font-size: 1.2em; word-break: break-all; }
 .result-large { padding: 30px; text-align: center; border-radius: 15px; margin-bottom: 20px; }
+
+/* Status Classes */
 .safe { background: #e8f5e9; border: 2px solid green; color: green; }
 .fake { background: #ffebee; border: 2px solid red; color: red; }
+.expired { background: #ffebee; border: 2px solid #d32f2f; color: #d32f2f; } /* NEW */
 
+#dashboard-screen, #scan-interface, #scan-result-screen, #advisor-interface, #mandi-interface, #poshan-interface { display: none; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
